@@ -65,20 +65,20 @@
       <div class="chrome-banner-brand">
         <div class="chrome-pulse-badge">
           <span class="pulse-point"></span>
-          <strong>REAL-TIME CHROME</strong>
+          <strong id="liveDevicePlatform">DEVICE TELEMETRY</strong>
         </div>
         <div class="chrome-metrics-pills">
-          <span class="metric-pill" title="Total RAM consumed by Google Chrome on your PC">
-            <small>Total RAM:</small> <strong id="liveChromeRam" class="highlight-cyan">...</strong>
+          <span class="metric-pill" title="Actual physical hardware RAM on this device">
+            <small>RAM:</small> <strong id="liveChromeRam" class="highlight-cyan">...</strong>
           </span>
-          <span class="metric-pill" title="Actual chrome.exe processes running in Windows">
-            <small>Processes:</small> <strong id="liveChromeCount" class="highlight-pink">... Procs</strong>
+          <span class="metric-pill" title="Actual logical CPU Cores on this device">
+            <small>Cores:</small> <strong id="liveChromeCount" class="highlight-pink">... Cores</strong>
           </span>
-          <span class="metric-pill" title="Active Chrome tabs & renderers">
-            <small>Tabs / Renderers:</small> <strong id="liveChromeTabsCount" class="highlight-indigo">... Tabs</strong>
+          <span class="metric-pill" title="Real-time heap memory consumed by Chrome on this device">
+            <small>Heap:</small> <strong id="liveChromeTabsCount" class="highlight-indigo">... MB</strong>
           </span>
-          <span class="metric-pill" title="Instantaneous Chrome CPU load">
-            <small>CPU:</small> <strong id="liveChromeCpu" class="highlight-amber">0.0%</strong>
+          <span class="metric-pill" title="Actual device storage disk quota">
+            <small>Storage:</small> <strong id="liveChromeCpu" class="highlight-amber">... GB</strong>
           </span>
           <span class="metric-pill anomaly-pill" id="anomalyAlertPill" title="AI Memory Leak & Zombie Tab Detector">
             <small>AI Status:</small> <strong id="anomalyAlertText" class="highlight-green">🛡️ All Healthy</strong>
@@ -86,18 +86,18 @@
         </div>
       </div>
       <div class="chrome-banner-actions">
-        <label class="live-toggle-label" title="Auto-refresh live Chrome stats every 2.5 seconds">
+        <label class="live-toggle-label" title="Auto-refresh live device stats every 2.5 seconds">
           <input type="checkbox" id="toggleLiveStream" checked>
           <span>Live Stream</span>
         </label>
         <button id="btnAutoFreezeLeaks" class="btn btn-sm btn-danger" title="Instantly discard/hibernate all high-RAM background tabs to free memory!">
           ❄️ Reclaim RAM
         </button>
-        <button id="btnSyncChrome" class="btn btn-sm btn-cyan" title="Sync live Chrome tabs and Windows chrome.exe processes">
-          🔄 Sync Chrome
+        <button id="btnSyncChrome" class="btn btn-sm btn-cyan" title="Sync live device processes and hardware telemetry">
+          🔄 Sync Device
         </button>
-        <button id="btnScheduleChromeNow" class="btn btn-sm btn-primary btn-glow" title="Schedule your actual live Chrome workload right now!">
-          ⚡ Schedule Real Chrome
+        <button id="btnScheduleChromeNow" class="btn btn-sm btn-primary btn-glow" title="Schedule your actual live device workload right now!">
+          ⚡ Schedule Real Device
         </button>
       </div>
     </div>
@@ -249,24 +249,24 @@
           <!-- Chrome Subsystem Stats -->
           <div class="summary-cards-grid" style="margin-bottom: 12px;">
             <div class="metric-card">
-              <span class="metric-label">Total Chrome RAM</span>
+              <span class="metric-label">Device Physical RAM</span>
               <span class="metric-value highlight-cyan" id="chromeTotalRamDetail">...</span>
-              <span class="metric-sub" id="chromeTotalRamMb">...</span>
+              <span class="metric-sub" id="chromeTotalRamMb">Hardware Memory</span>
             </div>
             <div class="metric-card">
-              <span class="metric-label">Tab Renderers</span>
+              <span class="metric-label">Hardware CPU Cores</span>
               <span class="metric-value highlight-indigo" id="chromeRendererCount">...</span>
-              <span class="metric-sub">Sandboxed processes</span>
+              <span class="metric-sub" id="chromePlatformDetail">Physical Cores</span>
             </div>
             <div class="metric-card">
-              <span class="metric-label">GPU Acceleration</span>
-              <span class="metric-value highlight-green" id="chromeGpuStatus">Active</span>
-              <span class="metric-sub" id="chromeGpuRam">...</span>
+              <span class="metric-label">Browser Heap RAM</span>
+              <span class="metric-value highlight-green" id="chromeGpuStatus">...</span>
+              <span class="metric-sub" id="chromeGpuRam">Real Memory</span>
             </div>
             <div class="metric-card">
-              <span class="metric-label">System Chrome PIDs</span>
+              <span class="metric-label">Disk Storage Quota</span>
               <span class="metric-value highlight-pink" id="chromePidCount">...</span>
-              <span class="metric-sub">chrome.exe instances</span>
+              <span class="metric-sub" id="chromeStorageDetail">Browser Cache</span>
             </div>
           </div>
 
