@@ -65,6 +65,13 @@ const state = {
     realTasks: [],
     processes: [],
     streamTimer: null
+  },
+  deviceAccess: {
+    granted: localStorage.getItem("device_access_granted") === "true",
+    apps: [],
+    files: [],
+    selectedFiles: [],
+    activeStream: null
   }
 };
 
@@ -249,6 +256,7 @@ function initApp() {
   setupNavigation();
   setupEventListeners();
   setupAiTutor();
+  setupDeviceAccessPermissions();
 
   // Pre-measure device hardware immediately for instantaneous UI telemetry display
   measureClientDeviceMetrics().then(telemetry => {
@@ -339,7 +347,9 @@ function setupNavigation() {
       }
 
       // Auto-trigger tab actions
-      if (targetId === "chromeLiveTab") {
+      if (targetId === "appsFilesTab") {
+        fetchDeviceAppsAndFiles();
+      } else if (targetId === "chromeLiveTab") {
         fetchChromeProcessesDetails();
       } else if (targetId === "candlestickTab") {
         renderCandlesticks(state.tasks);
@@ -734,6 +744,456 @@ function importCheckedChromeProcs() {
   renderCandlesticks(state.tasks);
   switchTab("schedulerTab");
   showToast(`Loaded ${imported.length} real Chrome processes into queue!`, "success");
+}
+
+// ========================================================
+// DEVICE PERMISSION & APPS / FILES INSPECTOR
+// ========================================================
+function setupDeviceAccessPermissions() {
+  const permModal = document.getElementById("deviceAccessModal");
+  const btnHeaderPerm = document.getElementById("btnDeviceAccess");
+  const btnExplicitPerm = document.getElementById("btnRequestPermissionExplicit");
+  const btnCloseModal = document.getElementById("btnClosePermModal");
+  const btnGrant = document.getElementById("btnGrantFullAccess");
+  const btnModalPick = document.getElementById("btnModalPickFolder");
+  const btnInspectFolder = document.getElementById("btnInspectFolderFiles");
+  const btnPickInline = document.getElementById("btnPickFolderInline");
+  const btnInspectWindow = document.getElementById("btnInspectLiveWindow");
+  const btnCloseStream = document.getElementById("btnCloseWindowStream");
+  const btnRefresh = document.getElementById("btnRefreshAppsFiles");
+  const btnImportApps = document.getElementById("btnImportAppsToScheduler");
+  const searchApps = document.getElementById("searchAppsInput");
+  const searchFiles = document.getElementById("searchFilesInput");
+  const selectAllApps = document.getElementById("selectAllApps");
+
+  function updatePermBadge() {
+    const permText = document.getElementById("permStatusText");
+    const permDot = document.querySelector(".perm-dot");
+    const statPerm = document.getElementById("statPermissionState");
+    const statSub = document.getElementById("statPermissionSub");
+
+    if (state.deviceAccess.granted) {
+      if (permText) permText.textContent = "🛡️ Access Granted";
+      if (btnHeaderPerm) btnHeaderPerm.classList.remove("denied");
+      if (permDot) permDot.style.background = "var(--neon-green)";
+      if (statPerm) {
+        statPerm.textContent = "Granted";
+        statPerm.className = "metric-value highlight-green";
+      }
+      if (statSub) statSub.textContent = "Full device inspection active";
+    } else {
+      if (permText) permText.textContent = "🔒 Permissions";
+      if (btnHeaderPerm) btnHeaderPerm.classList.add("denied");
+      if (permDot) permDot.style.background = "var(--neon-red)";
+      if (statPerm) {
+        statPerm.textContent = "Required";
+        statPerm.className = "metric-value highlight-pink";
+      }
+      if (statSub) statSub.textContent = "Click to grant inspection access";
+    }
+  }
+
+  function openModal() {
+    if (permModal) permModal.style.display = "flex";
+  }
+
+  function closeModal() {
+    if (permModal) permModal.style.display = "none";
+  }
+
+  if (btnHeaderPerm) btnHeaderPerm.addEventListener("click", openModal);
+  if (btnExplicitPerm) btnExplicitPerm.addEventListener("click", openModal);
+  if (btnCloseModal) btnCloseModal.addEventListener("click", closeModal);
+
+  if (permModal) {
+    permModal.addEventListener("click", (e) => {
+      if (e.target === permModal) closeModal();
+    });
+  }
+
+  if (btnGrant) {
+    btnGrant.addEventListener("click", () => {
+      state.deviceAccess.granted = true;
+      localStorage.setItem("device_access_granted", "true");
+      updatePermBadge();
+      closeModal();
+      audio.playTaskComplete();
+      showToast("🛡️ Device access granted! Inspected apps and files.", "success");
+      fetchDeviceAppsAndFiles(true);
+    });
+  }
+
+  if (btnModalPick) {
+    btnModalPick.addEventListener("click", async () => {
+      closeModal();
+      await pickDeviceFolderOrFiles();
+    });
+  }
+
+  if (btnInspectFolder) btnInspectFolder.addEventListener("click", pickDeviceFolderOrFiles);
+  if (btnPickInline) btnPickInline.addEventListener("click", pickDeviceFolderOrFiles);
+  if (btnInspectWindow) btnInspectWindow.addEventListener("click", inspectLiveWindowStream);
+  if (btnCloseStream) btnCloseStream.addEventListener("click", stopLiveWindowStream);
+  if (btnRefresh) btnRefresh.addEventListener("click", () => fetchDeviceAppsAndFiles(true));
+
+  if (btnImportApps) {
+    btnImportApps.addEventListener("click", importSelectedAppsToScheduler);
+  }
+
+  if (selectAllApps) {
+    selectAllApps.addEventListener("change", (e) => {
+      document.querySelectorAll(".app-select-cb").forEach(cb => cb.checked = e.target.checked);
+    });
+  }
+
+  if (searchApps) {
+    searchApps.addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      filterAppsTable(q);
+    });
+  }
+
+  if (searchFiles) {
+    searchFiles.addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      filterFilesTable(q);
+    });
+  }
+
+  updatePermBadge();
+
+  // If permission has not yet been granted, display modal after 800ms
+  if (!state.deviceAccess.granted) {
+    setTimeout(() => {
+      openModal();
+    }, 800);
+  } else {
+    fetchDeviceAppsAndFiles();
+  }
+}
+
+async function fetchDeviceAppsAndFiles(forceRefresh = false) {
+  const currentApi = getApiBase();
+  const telemetry = await measureClientDeviceMetrics();
+
+  const deviceBadge = document.getElementById("appsFilesDeviceBadge");
+  if (deviceBadge) deviceBadge.textContent = `${telemetry.platform} (${telemetry.hardware_concurrency} Cores)`;
+
+  const statRam = document.getElementById("statAppsRam");
+  if (statRam) statRam.textContent = `${telemetry.device_memory_gb} GB`;
+
+  let openTabs = [];
+  if (window.chrome && chrome.tabs && chrome.tabs.query) {
+    try {
+      openTabs = await new Promise(resolve => {
+        chrome.tabs.query({}, tabs => resolve(tabs || []));
+      });
+    } catch (e) {
+      console.warn("Chrome tabs query in apps inspection:", e);
+    }
+  }
+
+  const tbodyApps = document.getElementById("appsLiveTableBody");
+  const tbodyFiles = document.getElementById("filesLiveTableBody");
+
+  if (forceRefresh || state.deviceAccess.apps.length === 0) {
+    if (tbodyApps) tbodyApps.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 16px;">Inspecting active device applications...</td></tr>`;
+    if (tbodyFiles) tbodyFiles.innerHTML = `<tr><td colspan="5" class="text-center text-muted" style="padding: 16px;">Scanning device open files & memory handles...</td></tr>`;
+  }
+
+  try {
+    const res = await fetch(`${currentApi}/device/apps-and-files`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_device: telemetry,
+        tabs: openTabs,
+        files: state.deviceAccess.selectedFiles
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      state.deviceAccess.apps = data.apps || [];
+      state.deviceAccess.files = data.files || [];
+
+      const statApps = document.getElementById("statAppsCount");
+      if (statApps) statApps.textContent = state.deviceAccess.apps.length;
+
+      const statFiles = document.getElementById("statFilesCount");
+      if (statFiles) statFiles.textContent = state.deviceAccess.files.length;
+
+      renderAppsTable(state.deviceAccess.apps);
+      renderFilesTable(state.deviceAccess.files);
+    }
+  } catch (err) {
+    console.warn("Device apps & files fetch warning:", err);
+    if (state.deviceAccess.apps.length > 0) {
+      renderAppsTable(state.deviceAccess.apps);
+    }
+    if (state.deviceAccess.files.length > 0) {
+      renderFilesTable(state.deviceAccess.files);
+    }
+  }
+}
+
+function renderAppsTable(apps) {
+  const tbody = document.getElementById("appsLiveTableBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+  if (!apps || apps.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 16px;">No running applications detected. Click Refresh above.</td></tr>`;
+    return;
+  }
+
+  apps.forEach((app, idx) => {
+    const tr = document.createElement("tr");
+    
+    let catClass = "cat-browser";
+    if (app.category === "Code Editor") catClass = "cat-code";
+    else if (app.category === "Media Player") catClass = "cat-media";
+    else if (app.category === "Communication") catClass = "cat-comm";
+    else if (app.category === "System UI") catClass = "cat-sys";
+
+    let icon = "💻";
+    if (app.category === "Code Editor") icon = "📝";
+    else if (app.category === "Web Browser" || app.category === "Web Browser Tab") icon = "🌐";
+    else if (app.category === "Media Player") icon = "🎵";
+    else if (app.category === "Communication") icon = "💬";
+    else if (app.category === "System UI") icon = "⚙️";
+
+    const isHighRam = app.memory_mb > 300;
+    if (isHighRam) tr.classList.add("anomaly-leak-row");
+
+    tr.innerHTML = `
+      <td><input type="checkbox" class="app-select-cb" data-idx="${idx}" checked></td>
+      <td><code>${app.pid}</code></td>
+      <td><span class="app-cat-badge ${catClass}">${app.category || 'App'}</span></td>
+      <td>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>${icon}</span>
+          <div>
+            <strong style="color: #fff;">${app.name}</strong>
+            ${app.threads ? `<small class="text-muted"> (${app.threads} thr)</small>` : ''}
+            ${isHighRam ? '<span style="color: var(--neon-red); font-size: 10px; font-weight: 700; margin-left: 4px;">🚨 HIGH RAM</span>' : ''}
+          </div>
+        </div>
+      </td>
+      <td><span style="color: ${isHighRam ? 'var(--neon-red)' : 'var(--neon-green)'}; font-weight: 700;">${app.memory_mb} MB</span></td>
+      <td><span class="badge badge-sm" style="background: rgba(255,255,255,0.06); color: #e2e8f0;">${app.status || 'Active'}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderFilesTable(files) {
+  const tbody = document.getElementById("filesLiveTableBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+  if (!files || files.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted" style="padding: 16px;">No active files inspected yet. Click "Pick Folder / Files" to inspect files.</td></tr>`;
+    return;
+  }
+
+  files.forEach(f => {
+    const tr = document.createElement("tr");
+
+    const ext = (f.extension || "bin").toLowerCase();
+    let extClass = "ext-default";
+    if (ext === "py") extClass = "ext-py";
+    else if (ext === "js" || ext === "ts" || ext === "jsx") extClass = "ext-js";
+    else if (ext === "db" || ext === "sqlite" || ext === "sql") extClass = "ext-db";
+    else if (ext === "json" || ext === "xml" || ext === "yaml") extClass = "ext-json";
+    else if (ext === "mp4" || ext === "mp3" || ext === "wav" || ext === "png" || ext === "jpg") extClass = "ext-media";
+
+    tr.innerHTML = `
+      <td>
+        <div style="display: flex; align-items: center;">
+          <span class="file-ext-tag ${extClass}">${ext}</span>
+          <strong style="color: #fff;" title="${f.path || f.name}">${f.name}</strong>
+        </div>
+      </td>
+      <td><span class="text-dim" style="font-size: 11px;">${f.app || 'System'}</span></td>
+      <td><code style="font-size: 10.5px; color: #94a3b8; word-break: break-all;" title="${f.path}">${f.path || f.name}</code></td>
+      <td><span style="color: var(--neon-green); font-weight: 600;">${f.size_str || 'Active File'}</span></td>
+      <td><span class="badge badge-sm" style="background: rgba(0, 255, 136, 0.1); color: var(--neon-green); border: 1px solid rgba(0, 255, 136, 0.3);">${f.status || 'Active'}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function pickDeviceFolderOrFiles() {
+  try {
+    if (window.showDirectoryPicker) {
+      const dirHandle = await window.showDirectoryPicker();
+      showToast(`📁 Scanning directory: ${dirHandle.name}...`, "info");
+
+      const scannedFiles = [];
+      for await (const entry of dirHandle.values()) {
+        if (entry.kind === "file") {
+          try {
+            const file = await entry.getFile();
+            scannedFiles.push({
+              name: file.name,
+              path: `${dirHandle.name}/${file.name}`,
+              size: file.size,
+              type: file.type || "file",
+              last_modified: new Date(file.lastModified).toLocaleTimeString()
+            });
+          } catch (e) {
+            console.warn("Could not read file:", e);
+          }
+        }
+      }
+
+      state.deviceAccess.selectedFiles = scannedFiles;
+      state.deviceAccess.granted = true;
+      localStorage.setItem("device_access_granted", "true");
+      audio.playTaskComplete();
+      showToast(`✅ Inspected ${scannedFiles.length} files from ${dirHandle.name}!`, "success");
+      await fetchDeviceAppsAndFiles(true);
+
+    } else {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.multiple = true;
+      input.webkitdirectory = true;
+      input.onchange = async (e) => {
+        const fileList = Array.from(e.target.files || []);
+        const scannedFiles = fileList.map(f => ({
+          name: f.name,
+          path: f.webkitRelativePath || f.name,
+          size: f.size,
+          type: f.type || "file",
+          last_modified: new Date(f.lastModified).toLocaleTimeString()
+        }));
+
+        state.deviceAccess.selectedFiles = scannedFiles;
+        state.deviceAccess.granted = true;
+        localStorage.setItem("device_access_granted", "true");
+        audio.playTaskComplete();
+        showToast(`✅ Inspected ${scannedFiles.length} files from device!`, "success");
+        await fetchDeviceAppsAndFiles(true);
+      };
+      input.click();
+    }
+  } catch (err) {
+    if (err.name !== "AbortError") {
+      console.warn("Folder picker error:", err);
+      showToast("Directory inspection canceled or not supported", "info");
+    }
+  }
+}
+
+async function inspectLiveWindowStream() {
+  const container = document.getElementById("liveWindowStreamContainer");
+  const video = document.getElementById("liveWindowVideo");
+  const title = document.getElementById("liveWindowStreamTitle");
+
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      showToast("Live window capture is not supported in this browser", "error");
+      return;
+    }
+
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { cursor: "always" },
+      audio: false
+    });
+
+    state.deviceAccess.activeStream = stream;
+    if (video) {
+      video.srcObject = stream;
+      video.play();
+    }
+
+    const videoTrack = stream.getVideoTracks()[0];
+    if (title && videoTrack) {
+      title.textContent = videoTrack.label || "Live Active Window";
+    }
+
+    if (container) container.style.display = "block";
+
+    videoTrack.onended = () => {
+      stopLiveWindowStream();
+    };
+
+    audio.playContextSwitch();
+    showToast("🖥️ Live window inspection active!", "success");
+
+  } catch (err) {
+    if (err.name !== "NotAllowedError") {
+      console.warn("Screen capture notice:", err);
+    }
+  }
+}
+
+function stopLiveWindowStream() {
+  const container = document.getElementById("liveWindowStreamContainer");
+  const video = document.getElementById("liveWindowVideo");
+
+  if (state.deviceAccess.activeStream) {
+    state.deviceAccess.activeStream.getTracks().forEach(t => t.stop());
+    state.deviceAccess.activeStream = null;
+  }
+  if (video) video.srcObject = null;
+  if (container) container.style.display = "none";
+  showToast("Window stream stopped", "info");
+}
+
+function importSelectedAppsToScheduler() {
+  const checked = document.querySelectorAll(".app-select-cb:checked");
+  if (checked.length === 0) {
+    showToast("Please select at least 1 application", "info");
+    return;
+  }
+
+  const imported = [];
+  checked.forEach((cb, i) => {
+    const idx = parseInt(cb.dataset.idx);
+    const app = state.deviceAccess.apps[idx];
+    if (app) {
+      const burst = Math.max(2, Math.min(16, Math.round((app.memory_mb / 40.0) + (app.cpu_percent * 1.5))));
+      const priority = app.category === "Code Editor" || app.category === "Web Browser" ? 1 : (app.memory_mb > 150 ? 2 : 3);
+
+      imported.push({
+        name: `App: ${app.name}`,
+        arrival: i,
+        burst: burst,
+        priority: priority,
+        pid: app.pid,
+        memory_mb: app.memory_mb,
+        cpu_percent: app.cpu_percent,
+        is_real_chrome: true,
+        process_type: app.category || "Application"
+      });
+    }
+  });
+
+  state.tasks = imported;
+  renderTaskTable();
+  renderCandlesticks(state.tasks);
+  switchTab("schedulerTab");
+  audio.playTaskComplete();
+  showToast(`⚡ Loaded ${imported.length} active device applications into scheduler queue!`, "success");
+}
+
+function filterAppsTable(q) {
+  const rows = document.querySelectorAll("#appsLiveTableBody tr");
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(q) ? "" : "none";
+  });
+}
+
+function filterFilesTable(q) {
+  const rows = document.querySelectorAll("#filesLiveTableBody tr");
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(q) ? "" : "none";
+  });
 }
 
 function startLiveStreamPolling() {

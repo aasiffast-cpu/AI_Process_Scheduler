@@ -31,6 +31,10 @@
         <button id="btnToggleAudio" class="icon-btn audio-btn" title="Toggle Cyberpunk Sound FX (On/Off)">
           <span id="audioIcon">🔊</span>
         </button>
+        <button id="btnDeviceAccess" class="status-badge permission-badge" title="Device Access & Permissions Status (Click to manage)">
+          <span class="status-dot perm-dot" style="background: var(--neon-green);"></span>
+          <span id="permStatusText">🛡️ Access Granted</span>
+        </button>
         <div id="serverStatus" class="status-badge checking" title="Checking Backend API status">
           <span class="status-dot"></span>
           <span id="serverStatusText">Checking...</span>
@@ -106,6 +110,9 @@
     <nav class="nav-tabs" id="navTabsContainer">
       <button class="nav-tab active" data-tab="schedulerTab">
         <span class="tab-icon">⚡</span> Scheduler
+      </button>
+      <button class="nav-tab" data-tab="appsFilesTab">
+        <span class="tab-icon">📱</span> Apps & Files
       </button>
       <button class="nav-tab" data-tab="chromeLiveTab">
         <span class="tab-icon">🌐</span> Real-Time Chrome
@@ -229,6 +236,141 @@
               </button>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- TAB: DEVICE OPEN APPS & FILES INSPECTOR -->
+      <section id="appsFilesTab" class="tab-pane">
+        <div class="panel-card">
+          <div class="card-header-row">
+            <div>
+              <div class="candy-title-row">
+                <span class="candy-badge" style="background: rgba(0, 255, 136, 0.15); color: var(--neon-green); border-color: rgba(0, 255, 136, 0.4);">
+                  DEVICE TELEMETRY & INSPECTOR
+                </span>
+                <span class="metric-sub" id="appsFilesDeviceBadge">📱 Mobile / Desktop Inspector</span>
+              </div>
+              <h2 class="card-title">Active Running Applications & Open Files</h2>
+              <p class="subtitle">Complete inspection of active apps, sandboxes, and workspace files running on this device</p>
+            </div>
+            <div class="table-actions">
+              <button id="btnRequestPermissionExplicit" class="btn btn-sm btn-cyan" title="Request or update device access permission">
+                🛡️ Manage Access
+              </button>
+              <button id="btnInspectFolderFiles" class="btn btn-sm btn-secondary" title="Pick a folder or files from your device to inspect active files">
+                📂 Pick Folder / Files
+              </button>
+              <button id="btnInspectLiveWindow" class="btn btn-sm btn-secondary" title="Share an active application window or full screen live">
+                🖥️ Inspect Window
+              </button>
+              <button id="btnRefreshAppsFiles" class="btn btn-sm btn-cyan" title="Re-scan device apps and active files">
+                🔄 Refresh
+              </button>
+              <button id="btnImportAppsToScheduler" class="btn btn-sm btn-primary btn-glow" title="Load selected open apps into CPU scheduler">
+                ⚡ Load into Scheduler
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Hardware & Inspection Summary Cards -->
+          <div class="summary-cards-grid" style="margin-bottom: 16px;">
+            <div class="metric-card">
+              <span class="metric-label">Open Applications</span>
+              <span class="metric-value highlight-cyan" id="statAppsCount">0</span>
+              <span class="metric-sub" id="statAppsSub">Active on device</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Active Inspected Files</span>
+              <span class="metric-value highlight-indigo" id="statFilesCount">0</span>
+              <span class="metric-sub" id="statFilesSub">Loaded in memory / folder</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Device Physical RAM</span>
+              <span class="metric-value highlight-green" id="statAppsRam">...</span>
+              <span class="metric-sub" id="statAppsRamSub">Total device memory</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Permission Status</span>
+              <span class="metric-value highlight-green" id="statPermissionState">Granted</span>
+              <span class="metric-sub" id="statPermissionSub">Full device inspection</span>
+            </div>
+          </div>
+
+          <!-- Live Window Video Preview Container (Initially collapsed) -->
+          <div id="liveWindowStreamContainer" class="live-window-preview-card" style="display: none; margin-bottom: 16px;">
+            <div class="live-window-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="pulse-point"></span>
+                <strong>LIVE APPLICATION WINDOW INSPECTION</strong>
+                <span class="badge badge-sm" id="liveWindowStreamTitle">Active Window</span>
+              </div>
+              <button id="btnCloseWindowStream" class="btn btn-xs btn-danger">Stop Stream</button>
+            </div>
+            <div class="video-preview-wrapper" style="margin-top: 8px; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid rgba(0, 255, 136, 0.2);">
+              <video id="liveWindowVideo" autoplay playsinline muted style="width: 100%; max-height: 280px; object-fit: contain;"></video>
+            </div>
+          </div>
+
+          <!-- Section 1: Active Running Applications Table -->
+          <div style="margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+              <h3 style="font-size: 13.5px; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 6px;">
+                <span>🚀</span> Active Running Applications & Browser Tabs
+              </h3>
+              <input type="text" id="searchAppsInput" class="styled-input-compact" placeholder="Filter apps..." style="max-width: 180px;">
+            </div>
+
+            <div class="table-scroll-wrapper" style="max-height: 250px;">
+              <table class="chrome-live-table" id="appsLiveTable">
+                <thead>
+                  <tr>
+                    <th style="width: 6%;"><input type="checkbox" id="selectAllApps" checked></th>
+                    <th style="width: 12%;">PID</th>
+                    <th style="width: 18%;">Category</th>
+                    <th style="width: 38%;">Application Name / Title</th>
+                    <th style="width: 14%;">RAM (MB)</th>
+                    <th style="width: 12%;">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="appsLiveTableBody">
+                  <tr><td colspan="6" class="text-center text-muted" style="padding: 16px;">Loading device applications...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Section 2: Active Files & Workspace Explorer Table -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+              <h3 style="font-size: 13.5px; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 6px;">
+                <span>📂</span> Open & Active Files on this Device
+              </h3>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <input type="text" id="searchFilesInput" class="styled-input-compact" placeholder="Filter files..." style="max-width: 180px;">
+                <button id="btnPickFolderInline" class="btn btn-xs btn-secondary" title="Inspect any folder on your device">
+                  📁 Pick Folder
+                </button>
+              </div>
+            </div>
+
+            <div class="table-scroll-wrapper" style="max-height: 250px;">
+              <table class="chrome-live-table" id="filesLiveTable">
+                <thead>
+                  <tr>
+                    <th style="width: 25%;">File Name</th>
+                    <th style="width: 18%;">Associated App</th>
+                    <th style="width: 33%;">Path / Location</th>
+                    <th style="width: 12%;">File Size</th>
+                    <th style="width: 12%;">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="filesLiveTableBody">
+                  <tr><td colspan="5" class="text-center text-muted" style="padding: 16px;">Loading device files...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -673,6 +815,75 @@
       <input type="text" id="tutorInputText" class="tutor-input" placeholder="Ask about AI, Candlesticks, Multi-Core..." autocomplete="off">
       <button type="submit" id="btnSendTutor" class="btn btn-sm btn-primary">Send</button>
     </form>
+  </div>
+
+  <!-- DEVICE ACCESS & PERMISSION REQUEST MODAL -->
+  <div id="deviceAccessModal" class="cyberpunk-modal-overlay" style="display: none;">
+    <div class="cyberpunk-modal-dialog">
+      <div class="cyberpunk-modal-header">
+        <div class="modal-title-box">
+          <span class="modal-glow-shield">🛡️</span>
+          <div>
+            <h3 class="modal-main-title">DEVICE ACCESS & INSPECTION PERMISSION</h3>
+            <span class="modal-sub-title">Authorize system telemetry, active applications, and files inspection</span>
+          </div>
+        </div>
+        <button id="btnClosePermModal" class="modal-x-btn" title="Close">&times;</button>
+      </div>
+
+      <div class="cyberpunk-modal-content">
+        <p class="perm-desc-text">
+          To show complete details of <strong>which applications and files are open on this device</strong>, please grant device inspection permissions:
+        </p>
+
+        <div class="perm-options-group">
+          <label class="perm-option-card">
+            <input type="checkbox" id="permCbApps" checked>
+            <div class="perm-option-body">
+              <div class="perm-option-title">
+                <span>📱</span> <strong>Active Running Applications & Browser Tabs</strong>
+              </div>
+              <p class="perm-option-sub">
+                Inspects active processes, open tabs, background daemons, and renderer instances on this device.
+              </p>
+            </div>
+          </label>
+
+          <label class="perm-option-card">
+            <input type="checkbox" id="permCbFiles" checked>
+            <div class="perm-option-body">
+              <div class="perm-option-title">
+                <span>📂</span> <strong>Device Files & Workspace Explorer</strong>
+              </div>
+              <p class="perm-option-sub">
+                Inspects active files, loaded documents, sizes, and file types using the Web File System Access API.
+              </p>
+            </div>
+          </label>
+
+          <label class="perm-option-card">
+            <input type="checkbox" id="permCbTelemetry" checked>
+            <div class="perm-option-body">
+              <div class="perm-option-title">
+                <span>⚡</span> <strong>Hardware Telemetry & Memory Profiling</strong>
+              </div>
+              <p class="perm-option-sub">
+                Reads real-time physical RAM, logical CPU cores, browser heap usage, and device disk storage quota.
+              </p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="cyberpunk-modal-footer">
+        <button id="btnModalPickFolder" class="btn btn-secondary btn-sm" title="Select a directory to inspect active files">
+          📁 Select Folder / Files
+        </button>
+        <button id="btnGrantFullAccess" class="btn btn-primary btn-glow">
+          ✅ Grant Access & Inspect Device
+        </button>
+      </div>
+    </div>
   </div>
 
   <script src="popup.js"></script>
