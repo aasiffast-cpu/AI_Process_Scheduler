@@ -637,7 +637,16 @@
           <span class="tutor-status-text">🟢 Online &bull; Context-Aware</span>
         </div>
       </div>
-      <button id="btnCloseAiTutor" class="icon-btn-tiny" title="Close AI Tutor">✕</button>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <button id="btnToggleTutorKey" class="icon-btn-tiny" title="Configure Live LLM API Key (Gemini/OpenAI)">🔑</button>
+        <button id="btnCloseAiTutor" class="icon-btn-tiny" title="Close AI Tutor">✕</button>
+      </div>
+    </div>
+
+    <!-- Optional Live LLM Key Bar -->
+    <div class="tutor-key-row" id="tutorKeyRow" style="display: none;">
+      <input type="password" id="tutorApiKeyInput" class="tutor-key-input" placeholder="Paste Gemini / OpenAI API Key for Live LLM (Optional)">
+      <button id="btnSaveTutorKey" class="btn btn-sm btn-primary">Save</button>
     </div>
 
     <!-- Quick Prompt Chips -->

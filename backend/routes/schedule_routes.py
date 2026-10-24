@@ -574,26 +574,115 @@ def sync_chrome_tabs_and_processes():
     }), 200
 
 
+def call_llm_api(query, context, api_key=None):
+    """
+    Calls Google Gemini API or OpenAI API for dynamic, deep answers to ANY process question.
+    """
+    import os
+    import urllib.request
+    key = (api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("OPENAI_API_KEY") or "").strip()
+    if not key:
+        return None
+
+    prompt = (
+        "You are Schedulo AI, an expert Operating Systems Process Scheduler and CPU Simulation Tutor created by Muhammad Asif for 'AI Process Scheduler'.\n"
+        f"Live App Context:\n"
+        f"- Selected Algorithm: {context.get('algorithm')}\n"
+        f"- CPU Architecture: {context.get('num_cores')} Cores SMP\n"
+        f"- Active Task Queue: {context.get('tasks_summary')}\n"
+        f"- Resource Leaks / Anomalies: {context.get('anomalies_summary')}\n\n"
+        f"User Question: {query}\n\n"
+        "Instructions:\n"
+        "Answer clearly, accurately, and authoritatively in friendly Roman Urdu / Urdu with technical terms in English (e.g. CPU, Gantt, Burst Time, Throughput, Turnaround Time). Use bold formatting and emojis. Keep explanations educational, concise, and directly relevant to the user's question."
+    )
+
+    # 1. Try Google Gemini API (gemini-1.5-flash)
+    if not key.startswith("sk-"):
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+            payload = json.dumps({
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"temperature": 0.4, "maxOutputTokens": 600}
+            }).encode("utf-8")
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=6) as response:
+                res_data = json.loads(response.read().decode("utf-8"))
+                candidates = res_data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    if parts:
+                        return parts[0].get("text")
+        except Exception as e:
+            print(f"Gemini API attempt notice: {e}")
+
+    # 2. Try OpenAI API
+    if key.startswith("sk-") or "openai" in key.lower():
+        try:
+            url = "https://api.openai.com/v1/chat/completions"
+            payload = json.dumps({
+                "model": "gpt-3.5-turbo",
+                "messages": [
+                    {"role": "system", "content": "You are Schedulo AI, an expert OS CPU process scheduling tutor. Answer in friendly Roman Urdu with emojis."},
+                    {"role": "user", "content": prompt}
+                ],
+                "max_tokens": 500,
+                "temperature": 0.4
+            }).encode("utf-8")
+            req = urllib.request.Request(url, data=payload, headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {key}"
+            })
+            with urllib.request.urlopen(req, timeout=6) as response:
+                res_data = json.loads(response.read().decode("utf-8"))
+                return res_data["choices"][0]["message"]["content"]
+        except Exception as e:
+            print(f"OpenAI API attempt notice: {e}")
+
+    return None
+
+
 @schedule_bp.route("/assistant/chat", methods=["POST"])
 def assistant_chat():
     """
     Interactive AI Process Tutor & Assistant Bot Endpoint
-    Answers questions about OS Scheduling, the AI ML model, Candlesticks, Multi-Core SMP, and live processes.
+    Powered by live LLM API (Gemini/OpenAI) with instantaneous OS Knowledge Fallback.
     """
     data = request.get_json() or {}
-    query = str(data.get("message") or data.get("question") or "").strip().lower()
+    query = str(data.get("message") or data.get("question") or "").strip()
     algorithm = str(data.get("algorithm") or "ai").strip().lower()
     num_cores = int(data.get("num_cores", 4))
     tasks = data.get("tasks", [])
     anomalies = data.get("anomalies", [])
+    api_key = data.get("api_key")
 
     if not query:
         return jsonify({
-            "response": "Hello! Main Schedulo AI Tutor hoon. Aap mujhse AI Model, Candlesticks, Multi-Core SMP, ya kisi bhi scheduling algorithm ke mutaliq pooch sakte hain!"
+            "response": "Hello! Main Schedulo AI Tutor hoon. Aap mujhse AI Model, Candlesticks, Multi-Core SMP, Deadlocks, ya kisi bhi process question ke mutaliq pooch sakte hain!"
         }), 200
 
-    # 1. AI Model explanation
-    if any(k in query for k in ["ai model", "ai kya kar raha", "model kya kar", "random forest", "ml", "predict"]):
+    tasks_summary = ", ".join([f"{t.get('name')}(Burst:{t.get('burst')}s)" for t in tasks[:5]]) if tasks else "None"
+    anomalies_summary = f"{len([a for a in anomalies if a.get('is_anomaly')])} leaks detected" if anomalies else "All healthy"
+
+    context = {
+        "algorithm": algorithm,
+        "num_cores": num_cores,
+        "tasks_summary": tasks_summary,
+        "anomalies_summary": anomalies_summary
+    }
+
+    # 1. If LLM API key is present, get real live LLM answer!
+    llm_reply = call_llm_api(query, context, api_key)
+    if llm_reply:
+        return jsonify({
+            "status": "success",
+            "source": "live_llm_api",
+            "response": llm_reply
+        }), 200
+
+    query_lower = query.lower()
+
+    # 2. Comprehensive OS Knowledge Engine
+    if any(k in query_lower for k in ["ai model", "ai kya kar raha", "model kya kar", "random forest", "ml", "predict"]):
         reply = (
             "🧠 **AI Model Yahan Kya Kar Raha Hai?**\n\n"
             "Humara backend **Random Forest Regressor** Machine Learning pipeline use karta hai jo `backend/data/model.pkl` par train hua hai:\n\n"
@@ -603,8 +692,7 @@ def assistant_chat():
             "Is se OS classical FCFS ki tarah andha scheduling nahi karta, balki ML se intelligent decisions leta hai!"
         )
 
-    # 2. Candlestick visualizer explanation
-    elif any(k in query for k in ["candle", "candlestick", "red", "green", "bull", "bear", "siren"]):
+    elif any(k in query_lower for k in ["candle", "candlestick", "red", "green", "bull", "bear", "siren"]):
         reply = (
             "🕯️ **Candlestick Visualizer Ka Kya Matlab Hai?**\n\n"
             "Trading market ke Bull/Bear concept ko humne OS processes par apply kiya hai:\n\n"
@@ -615,8 +703,7 @@ def assistant_chat():
             "- ⬛ **Dim Green:** Wo process jo successfully complete ho chuka hai."
         )
 
-    # 3. Multi-Core SMP explanation
-    elif any(k in query for k in ["multicore", "multi-core", "smp", "core", "cores", "amdahl", "speedup"]):
+    elif any(k in query_lower for k in ["multicore", "multi-core", "smp", "core", "cores", "amdahl", "speedup"]):
         reply = (
             f"⚡ **Multi-Core SMP Scheduling ({num_cores} Cores)**\n\n"
             f"Aapka system abhi **{num_cores} Parallel Cores** par load balance kar raha hai:\n\n"
@@ -626,8 +713,7 @@ def assistant_chat():
             "Gantt Chart tab mein aap Core 0, Core 1, Core 2, Core 3 ke alag parallel tracks dekh sakte hain!"
         )
 
-    # 4. Memory Leak & Tab Freezing
-    elif any(k in query for k in ["leak", "freeze", "freezing", "zombie", "discard", "ram reclaim", "memory"]):
+    elif any(k in query_lower for k in ["leak", "freeze", "freezing", "zombie", "discard", "ram reclaim", "memory"]):
         reply = (
             "❄️ **Memory Leak & Chrome Tab Freezing Kaise Kaam Karta Hai?**\n\n"
             "1. **Zombie Detector:** Agar koi Chrome tab background mein chup kar 300MB se zyada RAM khaye, AI us par Siren alert bajata hai.\n"
@@ -635,8 +721,24 @@ def assistant_chat():
             "3. **Result:** Tab band nahi hota (URL wahi rehta hai), lekin uski RAM **150-400MB se drop ho kar sirf 8.5MB** reh jati hai! Jab user dubara tab par jaye ga wo instant refresh ho jata hai."
         )
 
-    # 5. Algorithm Comparison
-    elif any(k in query for k in ["best algorithm", "konsa algorithm", "compare", "fcfs", "sjf", "round robin", "rr", "priority"]):
+    elif any(k in query_lower for k in ["deadlock", "banker", "starvation", "aging", "semaphore", "mutex", "critical section"]):
+        reply = (
+            "🔒 **Deadlock, Starvation & Synchronization:**\n\n"
+            "- **Deadlock:** Jab 2 ya zyada processes aapas mein ek doosre ke resource release hone ka wait karte hain aur system jam ho jata hai (Coffman Conditions).\n"
+            "- **Starvation:** Jab low priority process ko CPU kabhi nahi milta kyunke high priority aate rehte hain.\n"
+            "- **Aging Solution:** Waqt ke sath low priority process ki priority barhana taake usay bhi CPU mile.\n"
+            "- **Semaphore & Mutex:** Shared resources (RAM, Printer, Database) par race conditions roknay ke liye locks hain."
+        )
+
+    elif any(k in query_lower for k in ["context switch", "pcb", "preemption", "preemptive", "non-preemptive"]):
+        reply = (
+            "🔄 **Context Switching & Preemption:**\n\n"
+            "- **Context Switch:** CPU ek running process ko rok kar doosre process ka state (registers, program counter) load karta hai. Isme chhota overhead hota hai.\n"
+            "- **Preemptive (e.g. Round Robin):** OS running process ko zabardasti beech mein rok kar doosre ko CPU de sakta hai.\n"
+            "- **Non-Preemptive (e.g. FCFS, SJF Non-Preemptive):** Ek dafa process CPU par baith gaya toh jab tak wo khud khatam na ho, CPU nahi chhorta."
+        )
+
+    elif any(k in query_lower for k in ["best algorithm", "konsa algorithm", "compare", "fcfs", "sjf", "round robin", "rr", "priority"]):
         reply = (
             "⚖️ **Scheduling Algorithms Ka Khulasa:**\n\n"
             "- **FCFS (First Come First Served):** Jo pehle aaya wo pehle chala. Convoy effect ka masla hota hai.\n"
@@ -647,41 +749,40 @@ def assistant_chat():
             "Top par **'Compare'** tab par click kar ke aap 5 algorithms ka side-by-side benchmark dekh sakte hain!"
         )
 
-    # 6. Metrics (WT, TAT, RT, Makespan)
-    elif any(k in query for k in ["waiting time", "turnaround", "tat", "wt", "response time", "makespan"]):
+    elif any(k in query_lower for k in ["waiting time", "turnaround", "tat", "wt", "response time", "makespan", "throughput"]):
         reply = (
             "📊 **OS Metrics Explained:**\n\n"
             "- **Waiting Time (WT):** Process ne ready queue mein kitna intezar kiya (`WT = TAT - Burst`).\n"
             "- **Turnaround Time (TAT):** Process submit hone se complete hone tak total kitna waqt laga (`TAT = Completion - Arrival`).\n"
             "- **Response Time (RT):** Process ko CPU pehli dafa milne mein kitna waqt laga.\n"
-            "- **Makespan:** Saare processes complete hone ka total time."
+            "- **Makespan:** Saare processes complete hone ka total time.\n"
+            "- **Throughput:** Fil waqt kitne processes fi unit waqt complete ho rahe hain (`Throughput = Tasks / Makespan`)."
         )
 
-    # 7. Greetings & About
-    elif any(k in query for k in ["hi", "hello", "salam", "kese ho", "kaise ho", "who are you", "kon ho"]):
+    elif any(k in query_lower for k in ["hi", "hello", "salam", "kese ho", "kaise ho", "who are you", "kon ho"]):
         reply = (
             "👋 **Assalam-o-Alaikum!** Main **Schedulo AI Tutor** hoon.\n\n"
             "Maine Muhammad Asif ke **AI Process Scheduler** ke liye design kiya gaya hai. Main aapko OS scheduling, Machine Learning predictions, Multi-Core SMP, aur live Chrome monitoring explain karne ke liye 24/7 online hoon.\n\n"
-            "Aap mujhse koi bhi sawal pooch sakte hain ya neeche diye gaye quick buttons par click karein!"
+            "Aap mujhse process ka koi bhi sawal pooch sakte hain!"
         )
 
-    # 8. Context-aware fallback with active task info
     else:
         active_names = [t.get("name") for t in tasks[:3]]
         reply = (
-            f"💡 **Schedulo AI Context Answer:**\n\n"
+            f"💡 **Schedulo AI Tutor Answer:**\n\n"
             f"Aapne poocha: *\"{query}\"*\n\n"
             f"Filhal aapka system **{algorithm.upper()}** algorithm par **{num_cores} Cores** ke sath set hai. Queue mein **{len(tasks)} processes** hain"
             + (f" (e.g. {', '.join(active_names)})" if active_names else "") + ".\n\n"
-            "Aap mujhse in topics par pooch sakte hain:\n"
+            "Process scheduling ke mutaliq aap mujhse in topics par tafseel se pooch sakte hain:\n"
             "- *'AI Model yahan kya kar raha hai?'*\n"
-            "- *'Candlesticks ka kya matlab hai?'*\n"
-            "- *'Multi-Core SMP kaise chalta hai?'*\n"
-            "- *'Memory leak aur tab freeze kaise kaam karta hai?'*"
+            "- *'Deadlocks aur Starvation kaise hoti hai?'*\n"
+            "- *'Preemptive aur Non-Preemptive mein kya farq hai?'*\n"
+            "- *'Candlesticks aur Tab Freezing ka kya scene hai?'*"
         )
 
     return jsonify({
         "status": "success",
+        "source": "knowledge_engine",
         "response": reply
     }), 200
 

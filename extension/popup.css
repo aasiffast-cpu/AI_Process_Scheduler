@@ -1674,6 +1674,28 @@ tr:hover td {
 }
 .icon-btn-tiny:hover { color: var(--neon-red); }
 
+/* Optional API Key Input Row */
+.tutor-key-row {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #040806;
+  border-bottom: 1px solid rgba(0, 255, 136, 0.15);
+}
+.tutor-key-input {
+  flex: 1;
+  background: #0c1811;
+  border: 1px solid var(--border-color);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  outline: none;
+}
+.tutor-key-input:focus {
+  border-color: var(--neon-green);
+}
+
 /* Quick Chips */
 .tutor-chips-row {
   display: flex;

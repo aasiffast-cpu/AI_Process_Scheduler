@@ -250,6 +250,22 @@ function initApp() {
   setupEventListeners();
   setupAiTutor();
 
+  // Detect Mobile Chrome Browser & customize title/defaults
+  const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  if (isMobile) {
+    const pulseText = document.querySelector(".chrome-pulse-badge strong");
+    if (pulseText) pulseText.textContent = "MOBILE CHROME WORKLOAD";
+    
+    // Default Mobile Chrome Tasks
+    state.tasks = [
+      { name: "Mobile: YouTube 1080p Music", arrival: 0, burst: 8, priority: 1, memory_mb: 185.0, cpu_percent: 2.8, is_audible: true, is_active: true, process_type: "Tab Renderer" },
+      { name: "Mobile: Instagram Web Feed", arrival: 1, burst: 5, priority: 2, memory_mb: 140.5, cpu_percent: 1.4, process_type: "Tab Renderer" },
+      { name: "Mobile: WhatsApp Web Chats", arrival: 1, burst: 3, priority: 2, memory_mb: 82.0, cpu_percent: 0.6, process_type: "Tab Renderer" },
+      { name: "Mobile: ChatGPT AI Workspace", arrival: 2, burst: 6, priority: 1, memory_mb: 96.5, cpu_percent: 1.1, process_type: "Tab Renderer" },
+      { name: "Mobile: WebGL 3D Game Canvas", arrival: 3, burst: 10, priority: 1, memory_mb: 215.0, cpu_percent: 4.5, process_type: "GPU Hardware" }
+    ];
+  }
+
   // Initialize Cyberpunk Audio FX state in UI
   const audioIcon = document.getElementById("audioIcon");
   const audioBtn = document.getElementById("btnToggleAudio");
@@ -384,11 +400,17 @@ async function fetchRealChromeData(autoSchedule = false, overwriteQueue = false)
       const data = await res.json();
       const summary = data.chrome_summary || {};
       
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const totalRam = summary.total_memory_gb || (isMobile ? 0.95 : 1.75);
+      const totalCount = summary.total_processes || (isMobile ? 12 : 35);
+      const totalTabs = summary.tabs_synced || (isMobile ? 5 : 8);
+      const totalCpu = summary.total_cpu_percent || (isMobile ? 1.8 : 0.7);
+
       // Update top live banner metrics
-      document.getElementById("liveChromeRam").textContent = `${summary.total_memory_gb || 1.75} GB`;
-      document.getElementById("liveChromeCount").textContent = `${summary.total_processes || 35} Procs`;
-      document.getElementById("liveChromeTabsCount").textContent = `${summary.tabs_synced || 8} Tabs`;
-      document.getElementById("liveChromeCpu").textContent = `${summary.total_cpu_percent || 0.0}%`;
+      document.getElementById("liveChromeRam").textContent = `${totalRam} GB`;
+      document.getElementById("liveChromeCount").textContent = `${totalCount} Procs`;
+      document.getElementById("liveChromeTabsCount").textContent = `${totalTabs} Tabs`;
+      document.getElementById("liveChromeCpu").textContent = `${totalCpu}%`;
 
       // Update AI Anomaly Detector status
       state.anomalies = data.anomalies || [];
@@ -409,22 +431,26 @@ async function fetchRealChromeData(autoSchedule = false, overwriteQueue = false)
       // Update detail tab cards if present
       const detailRam = document.getElementById("chromeTotalRamDetail");
       if (detailRam) {
-        detailRam.textContent = `${summary.total_memory_gb || 1.75} GB`;
-        document.getElementById("chromeTotalRamMb").textContent = `${summary.total_memory_mb || 1788.6} MB`;
-        document.getElementById("chromeRendererCount").textContent = `${summary.tabs_synced || 8}`;
-        document.getElementById("chromePidCount").textContent = `${summary.total_processes || 35}`;
+        detailRam.textContent = `${totalRam} GB`;
+        document.getElementById("chromeTotalRamMb").textContent = `${summary.total_memory_mb || (isMobile ? 972.8 : 1788.6)} MB`;
+        document.getElementById("chromeRendererCount").textContent = `${totalTabs}`;
+        document.getElementById("chromePidCount").textContent = `${totalCount}`;
       }
 
-      state.chromeLive.realTasks = data.tasks || [];
+      if (data.tasks && data.tasks.length > 0) {
+        state.chromeLive.realTasks = data.tasks;
+      }
 
-      if (overwriteQueue || state.tasks.length === 0) {
+      if ((overwriteQueue || state.tasks.length === 0) && state.chromeLive.realTasks.length > 0) {
         state.tasks = JSON.parse(JSON.stringify(state.chromeLive.realTasks));
         renderTaskTable();
         renderCandlesticks(state.tasks);
       }
 
       if (autoSchedule) {
-        state.tasks = JSON.parse(JSON.stringify(state.chromeLive.realTasks));
+        if (state.chromeLive.realTasks.length > 0) {
+          state.tasks = JSON.parse(JSON.stringify(state.chromeLive.realTasks));
+        }
         renderTaskTable();
         renderCandlesticks(state.tasks);
         await handleRunSchedule();
@@ -1867,6 +1893,11 @@ function setupAiTutor() {
   const container = document.getElementById("tutorMessagesContainer");
   const chips = document.querySelectorAll(".tutor-chip");
 
+  const btnToggleKey = document.getElementById("btnToggleTutorKey");
+  const keyRow = document.getElementById("tutorKeyRow");
+  const keyInput = document.getElementById("tutorApiKeyInput");
+  const btnSaveKey = document.getElementById("btnSaveTutorKey");
+
   if (!btnOpen || !drawer) return;
 
   btnOpen.addEventListener("click", () => {
@@ -1881,6 +1912,31 @@ function setupAiTutor() {
   if (btnClose) {
     btnClose.addEventListener("click", () => {
       drawer.style.display = "none";
+    });
+  }
+
+  // Toggle API key configuration row
+  if (btnToggleKey && keyRow) {
+    btnToggleKey.addEventListener("click", () => {
+      const isVisible = keyRow.style.display !== "none";
+      keyRow.style.display = isVisible ? "none" : "flex";
+      if (!isVisible && keyInput) {
+        keyInput.value = localStorage.getItem("ai_tutor_api_key") || "";
+      }
+    });
+  }
+
+  if (btnSaveKey && keyInput) {
+    btnSaveKey.addEventListener("click", () => {
+      const val = keyInput.value.trim();
+      if (val) {
+        localStorage.setItem("ai_tutor_api_key", val);
+        showToast("Saved LLM API Key (Gemini/OpenAI)!", "success");
+      } else {
+        localStorage.removeItem("ai_tutor_api_key");
+        showToast("Using Built-in OS Tutor Knowledge Engine", "info");
+      }
+      if (keyRow) keyRow.style.display = "none";
     });
   }
 
@@ -1912,12 +1968,15 @@ function setupAiTutor() {
     appendChatMessage("Analyzing question & OS state...", "bot", loadingId);
 
     const currentApi = getApiBase();
+    const customApiKey = localStorage.getItem("ai_tutor_api_key");
+
     try {
       const res = await fetch(`${currentApi}/assistant/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
+          api_key: customApiKey,
           algorithm: document.getElementById("algorithmSelect")?.value || "ai",
           num_cores: parseInt(document.getElementById("cpuCoresSelect")?.value) || 4,
           tasks: state.tasks,
@@ -1926,7 +1985,10 @@ function setupAiTutor() {
       });
 
       const data = await res.json();
-      const botReply = data.response || "Mera server response generate nahi kar saka. Please dobara poochhein.";
+      let botReply = data.response || "Mera server response generate nahi kar saka. Please dobara poochhein.";
+      if (data.source === "live_llm_api") {
+        botReply = `✨ *Live LLM Response*\n\n${botReply}`;
+      }
       
       const loadingEl = document.getElementById(loadingId);
       if (loadingEl) {
@@ -1936,7 +1998,7 @@ function setupAiTutor() {
     } catch (err) {
       const loadingEl = document.getElementById(loadingId);
       if (loadingEl) {
-        loadingEl.innerHTML = `⚠️ Assistant network notice: Could not reach backend at ${currentApi}.`;
+        loadingEl.innerHTML = `⚠️ Assistant notice: Could not reach backend at ${currentApi}.`;
       }
     }
 
