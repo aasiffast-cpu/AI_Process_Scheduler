@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#060a08">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>AI Process Scheduler</title>
   <link rel="stylesheet" href="popup.css">
 </head>
@@ -614,6 +618,52 @@
 
     <!-- Notification Toast -->
     <div id="toast" class="toast">Notification message</div>
+  </div>
+
+  <!-- Floating AI Tutor FAB Button -->
+  <button id="btnOpenAiTutor" class="ai-tutor-fab" title="Ask Schedulo AI Tutor">
+    <span class="tutor-pulse"></span>
+    <span class="tutor-icon">🤖</span>
+    <span class="tutor-label">AI Tutor</span>
+  </button>
+
+  <!-- AI Tutor Cyberpunk Chat Drawer / Modal -->
+  <div id="aiTutorDrawer" class="ai-tutor-drawer" style="display: none;">
+    <div class="tutor-header">
+      <div class="tutor-brand">
+        <span class="tutor-avatar">🤖</span>
+        <div>
+          <h4>Schedulo AI Tutor</h4>
+          <span class="tutor-status-text">🟢 Online &bull; Context-Aware</span>
+        </div>
+      </div>
+      <button id="btnCloseAiTutor" class="icon-btn-tiny" title="Close AI Tutor">✕</button>
+    </div>
+
+    <!-- Quick Prompt Chips -->
+    <div class="tutor-chips-row">
+      <button class="tutor-chip" data-q="AI Model yahan kya kar raha hai?">🧠 AI Model kya kar raha hai?</button>
+      <button class="tutor-chip" data-q="Candlesticks ka kya scene hai?">🕯️ Candlesticks ka kya matlab?</button>
+      <button class="tutor-chip" data-q="Multi-Core SMP kaise chal raha hai?">⚡ Multi-Core SMP Load?</button>
+      <button class="tutor-chip" data-q="Memory leak aur tab freeze kaise kaam karta hai?">❄️ Tab Freeze & RAM?</button>
+      <button class="tutor-chip" data-q="Konsa algorithm best hai?">⚖️ Best Algorithm?</button>
+    </div>
+
+    <!-- Chat Message History -->
+    <div id="tutorMessagesContainer" class="tutor-messages">
+      <div class="tutor-msg bot">
+        <div class="msg-bubble">
+          👋 <strong>Assalam-o-Alaikum!</strong> Main <strong>Schedulo AI Tutor</strong> hoon.<br>
+          Agar aapko OS scheduling, AI ML model, Candlesticks, ya Multi-Core processing samajh na aaye, toh mujhse yahan pooch sakte hain!
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Input Form -->
+    <form id="tutorChatForm" class="tutor-input-form">
+      <input type="text" id="tutorInputText" class="tutor-input" placeholder="Ask about AI, Candlesticks, Multi-Core..." autocomplete="off">
+      <button type="submit" id="btnSendTutor" class="btn btn-sm btn-primary">Send</button>
+    </form>
   </div>
 
   <script src="popup.js"></script>

@@ -5,7 +5,7 @@
  * Author: Muhammad Asif
  */
 
-// Dynamic API Base URL (Supports Localhost & Vercel Cloud Deployment!)
+// Dynamic API Base URL (Supports Mobile Web, Localhost & Vercel Cloud Deployment!)
 function getApiBase() {
   const custom = localStorage.getItem("ai_scheduler_api_base");
   if (custom && custom.trim()) {
@@ -14,7 +14,11 @@ function getApiBase() {
     if (!clean.endsWith("/api")) clean += "/api";
     return clean;
   }
-  return "http://127.0.0.1:5000/api";
+  // When running directly in Mobile Chrome or Web Dashboard
+  if (window.location && window.location.origin && window.location.origin.startsWith("http") && !window.location.origin.includes("chrome-extension")) {
+    return `${window.location.origin}/api`;
+  }
+  return "https://project-63jm6.vercel.app/api";
 }
 
 function setApiBase(url) {
@@ -244,6 +248,7 @@ const PRESETS = {
 function initApp() {
   setupNavigation();
   setupEventListeners();
+  setupAiTutor();
 
   // Initialize Cyberpunk Audio FX state in UI
   const audioIcon = document.getElementById("audioIcon");
@@ -1848,4 +1853,115 @@ function setupEventListeners() {
       state.simulation.timer = setInterval(tickSimulation, state.simulation.speedMs);
     }
   });
+}
+
+// ========================================================
+// AI PROCESS TUTOR BOT CONTROLLER
+// ========================================================
+function setupAiTutor() {
+  const btnOpen = document.getElementById("btnOpenAiTutor");
+  const btnClose = document.getElementById("btnCloseAiTutor");
+  const drawer = document.getElementById("aiTutorDrawer");
+  const form = document.getElementById("tutorChatForm");
+  const input = document.getElementById("tutorInputText");
+  const container = document.getElementById("tutorMessagesContainer");
+  const chips = document.querySelectorAll(".tutor-chip");
+
+  if (!btnOpen || !drawer) return;
+
+  btnOpen.addEventListener("click", () => {
+    const isVisible = drawer.style.display !== "none";
+    drawer.style.display = isVisible ? "none" : "flex";
+    if (!isVisible && input) {
+      input.focus();
+      audio.playContextSwitch();
+    }
+  });
+
+  if (btnClose) {
+    btnClose.addEventListener("click", () => {
+      drawer.style.display = "none";
+    });
+  }
+
+  // Quick Chips
+  chips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      const q = chip.dataset.q;
+      if (q) {
+        if (input) input.value = q;
+        submitTutorMessage(q);
+      }
+    });
+  });
+
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const text = input ? input.value.trim() : "";
+      if (!text) return;
+      submitTutorMessage(text);
+      if (input) input.value = "";
+    });
+  }
+
+  async function submitTutorMessage(text) {
+    appendChatMessage(text, "user");
+
+    const loadingId = "bot-loading-" + Date.now();
+    appendChatMessage("Analyzing question & OS state...", "bot", loadingId);
+
+    const currentApi = getApiBase();
+    try {
+      const res = await fetch(`${currentApi}/assistant/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          algorithm: document.getElementById("algorithmSelect")?.value || "ai",
+          num_cores: parseInt(document.getElementById("cpuCoresSelect")?.value) || 4,
+          tasks: state.tasks,
+          anomalies: state.anomalies
+        })
+      });
+
+      const data = await res.json();
+      const botReply = data.response || "Mera server response generate nahi kar saka. Please dobara poochhein.";
+      
+      const loadingEl = document.getElementById(loadingId);
+      if (loadingEl) {
+        loadingEl.innerHTML = formatMarkdown(botReply);
+      }
+      audio.playContextSwitch();
+    } catch (err) {
+      const loadingEl = document.getElementById(loadingId);
+      if (loadingEl) {
+        loadingEl.innerHTML = `⚠️ Assistant network notice: Could not reach backend at ${currentApi}.`;
+      }
+    }
+
+    if (container) container.scrollTop = container.scrollHeight;
+  }
+
+  function appendChatMessage(content, sender, id = null) {
+    if (!container) return;
+    const div = document.createElement("div");
+    div.className = `tutor-msg ${sender}`;
+    const bubble = document.createElement("div");
+    bubble.className = "msg-bubble";
+    if (id) bubble.id = id;
+    bubble.innerHTML = sender === "user" ? escapeHtml(content) : formatMarkdown(content);
+    div.appendChild(bubble);
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function formatMarkdown(text) {
+    if (!text) return "";
+    return text
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>")
+      .replace(/\n\n/g, "<br><br>")
+      .replace(/\n/g, "<br>");
+  }
 }

@@ -573,3 +573,116 @@ def sync_chrome_tabs_and_processes():
         "tasks": real_tasks
     }), 200
 
+
+@schedule_bp.route("/assistant/chat", methods=["POST"])
+def assistant_chat():
+    """
+    Interactive AI Process Tutor & Assistant Bot Endpoint
+    Answers questions about OS Scheduling, the AI ML model, Candlesticks, Multi-Core SMP, and live processes.
+    """
+    data = request.get_json() or {}
+    query = str(data.get("message") or data.get("question") or "").strip().lower()
+    algorithm = str(data.get("algorithm") or "ai").strip().lower()
+    num_cores = int(data.get("num_cores", 4))
+    tasks = data.get("tasks", [])
+    anomalies = data.get("anomalies", [])
+
+    if not query:
+        return jsonify({
+            "response": "Hello! Main Schedulo AI Tutor hoon. Aap mujhse AI Model, Candlesticks, Multi-Core SMP, ya kisi bhi scheduling algorithm ke mutaliq pooch sakte hain!"
+        }), 200
+
+    # 1. AI Model explanation
+    if any(k in query for k in ["ai model", "ai kya kar raha", "model kya kar", "random forest", "ml", "predict"]):
+        reply = (
+            "🧠 **AI Model Yahan Kya Kar Raha Hai?**\n\n"
+            "Humara backend **Random Forest Regressor** Machine Learning pipeline use karta hai jo `backend/data/model.pkl` par train hua hai:\n\n"
+            "1. **Burst Time Prediction:** Process ke naam, RAM usage, aur CPU history se predict karta hai ke process CPU par kitne seconds (`burst`) lega.\n"
+            "2. **Smart Priority Ranking:** High-load processes (jaise 4K Video Renderers ya GPU tabs) ko prioritize karta hai taake system freeze na ho.\n"
+            "3. **Dynamic Workload Clustering:** Process ko Interactive, CPU-Heavy, Streaming, ya Background categories mein classify karta hai.\n\n"
+            "Is se OS classical FCFS ki tarah andha scheduling nahi karta, balki ML se intelligent decisions leta hai!"
+        )
+
+    # 2. Candlestick visualizer explanation
+    elif any(k in query for k in ["candle", "candlestick", "red", "green", "bull", "bear", "siren"]):
+        reply = (
+            "🕯️ **Candlestick Visualizer Ka Kya Matlab Hai?**\n\n"
+            "Trading market ke Bull/Bear concept ko humne OS processes par apply kiya hai:\n\n"
+            "- 🟢 **Green (Bull Candle):** Healthy lightweight process (low burst, low RAM tab, background task).\n"
+            "- 🔴 **Red (Bear Candle):** Heavy compute task (4K Video stream, WebGL 3D, GPU acceleration ya Priority 1).\n"
+            "- ⚡ **Pulsing Green Glow:** Wo process jo currently CPU Core par execute ho raha hai aur burn down ho raha hai.\n"
+            "- 🚨 **Red Siren Candle (`.candle-siren`):** Aisa tab jisme AI ne **Memory Leak (>300MB)** ya high CPU loop detect kiya hai!\n"
+            "- ⬛ **Dim Green:** Wo process jo successfully complete ho chuka hai."
+        )
+
+    # 3. Multi-Core SMP explanation
+    elif any(k in query for k in ["multicore", "multi-core", "smp", "core", "cores", "amdahl", "speedup"]):
+        reply = (
+            f"⚡ **Multi-Core SMP Scheduling ({num_cores} Cores)**\n\n"
+            f"Aapka system abhi **{num_cores} Parallel Cores** par load balance kar raha hai:\n\n"
+            "1. **Parallel Load Balancer:** Single core ki tarah tasks line mein khare nahi rehte; 4 cores simultaneously tasks ko execute karte hain.\n"
+            "2. **Amdahl's Law Speedup Factor ($S$):** Calculate karta hai ke multi-core lagane se system kitne guna tezi se complete hua.\n"
+            "3. **Parallel Efficiency ($E\\%$):** Batata hai ke CPU cores ka resource balance kitna effective raha.\n\n"
+            "Gantt Chart tab mein aap Core 0, Core 1, Core 2, Core 3 ke alag parallel tracks dekh sakte hain!"
+        )
+
+    # 4. Memory Leak & Tab Freezing
+    elif any(k in query for k in ["leak", "freeze", "freezing", "zombie", "discard", "ram reclaim", "memory"]):
+        reply = (
+            "❄️ **Memory Leak & Chrome Tab Freezing Kaise Kaam Karta Hai?**\n\n"
+            "1. **Zombie Detector:** Agar koi Chrome tab background mein chup kar 300MB se zyada RAM khaye, AI us par Siren alert bajata hai.\n"
+            "2. **Real Chrome Discard (`chrome.tabs.discard`):** Jab aap `❄️ Freeze` ya `❄️ Reclaim RAM` dabate hain, Chrome us background tab ko RAM se discard kar deta hai.\n"
+            "3. **Result:** Tab band nahi hota (URL wahi rehta hai), lekin uski RAM **150-400MB se drop ho kar sirf 8.5MB** reh jati hai! Jab user dubara tab par jaye ga wo instant refresh ho jata hai."
+        )
+
+    # 5. Algorithm Comparison
+    elif any(k in query for k in ["best algorithm", "konsa algorithm", "compare", "fcfs", "sjf", "round robin", "rr", "priority"]):
+        reply = (
+            "⚖️ **Scheduling Algorithms Ka Khulasa:**\n\n"
+            "- **FCFS (First Come First Served):** Jo pehle aaya wo pehle chala. Convoy effect ka masla hota hai.\n"
+            "- **SJF (Shortest Job First):** Chhotay jobs pehle chalte hain. Minimum Average Waiting Time deta hai!\n"
+            "- **Round Robin (RR):** Har process ko barabar Time Quantum (e.g. 2s) milta hai. Best for multitasking web apps.\n"
+            "- **Priority:** Urgent tasks (Priority 1) pehle run hote hain.\n"
+            "- ✨ **AI Smart Mode:** ML se dynamic priorities aur burst predict kar ke automatic optimum sequence banata hai.\n\n"
+            "Top par **'Compare'** tab par click kar ke aap 5 algorithms ka side-by-side benchmark dekh sakte hain!"
+        )
+
+    # 6. Metrics (WT, TAT, RT, Makespan)
+    elif any(k in query for k in ["waiting time", "turnaround", "tat", "wt", "response time", "makespan"]):
+        reply = (
+            "📊 **OS Metrics Explained:**\n\n"
+            "- **Waiting Time (WT):** Process ne ready queue mein kitna intezar kiya (`WT = TAT - Burst`).\n"
+            "- **Turnaround Time (TAT):** Process submit hone se complete hone tak total kitna waqt laga (`TAT = Completion - Arrival`).\n"
+            "- **Response Time (RT):** Process ko CPU pehli dafa milne mein kitna waqt laga.\n"
+            "- **Makespan:** Saare processes complete hone ka total time."
+        )
+
+    # 7. Greetings & About
+    elif any(k in query for k in ["hi", "hello", "salam", "kese ho", "kaise ho", "who are you", "kon ho"]):
+        reply = (
+            "👋 **Assalam-o-Alaikum!** Main **Schedulo AI Tutor** hoon.\n\n"
+            "Maine Muhammad Asif ke **AI Process Scheduler** ke liye design kiya gaya hai. Main aapko OS scheduling, Machine Learning predictions, Multi-Core SMP, aur live Chrome monitoring explain karne ke liye 24/7 online hoon.\n\n"
+            "Aap mujhse koi bhi sawal pooch sakte hain ya neeche diye gaye quick buttons par click karein!"
+        )
+
+    # 8. Context-aware fallback with active task info
+    else:
+        active_names = [t.get("name") for t in tasks[:3]]
+        reply = (
+            f"💡 **Schedulo AI Context Answer:**\n\n"
+            f"Aapne poocha: *\"{query}\"*\n\n"
+            f"Filhal aapka system **{algorithm.upper()}** algorithm par **{num_cores} Cores** ke sath set hai. Queue mein **{len(tasks)} processes** hain"
+            + (f" (e.g. {', '.join(active_names)})" if active_names else "") + ".\n\n"
+            "Aap mujhse in topics par pooch sakte hain:\n"
+            "- *'AI Model yahan kya kar raha hai?'*\n"
+            "- *'Candlesticks ka kya matlab hai?'*\n"
+            "- *'Multi-Core SMP kaise chalta hai?'*\n"
+            "- *'Memory leak aur tab freeze kaise kaam karta hai?'*"
+        )
+
+    return jsonify({
+        "status": "success",
+        "response": reply
+    }), 200
+
+
