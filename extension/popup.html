@@ -1,762 +1,945 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#060a08">
+  <meta name="theme-color" content="#0B1220">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>AI Process Scheduler</title>
+  <title>AI Process Scheduler - Operating System Simulator</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="app-container">
-    <!-- Header -->
+  <div class="app-shell">
+    <!-- Top Global Header -->
     <header class="app-header">
-      <div class="brand-section">
-        <div class="logo-wrapper">
-          <img src="icons/icon48.png" alt="AI Scheduler" class="logo-img">
-          <span class="logo-pulse"></span>
-        </div>
-        <div>
-          <div class="title-row">
-            <h1>AI Process Scheduler</h1>
-            <span class="version-tag">v1.0 &bull; Cloud Ready</span>
+      <div class="header-left">
+        <button id="btnSidebarToggle" class="sidebar-toggle-btn" title="Toggle Navigation Menu" aria-label="Toggle Navigation">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <div class="brand-section">
+          <div class="logo-wrapper">
+            <img src="icons/icon48.png" alt="AI Scheduler" class="logo-img">
           </div>
-          <p class="subtitle">Smart OS Scheduling & Simulation &bull; By Muhammad Asif</p>
+          <div class="brand-text">
+            <h1 class="brand-title">AI Process Scheduler</h1>
+            <span class="brand-caption">Intelligent OS Simulator &bull; By Muhammad Asif</span>
+          </div>
         </div>
       </div>
-      <div class="header-actions">
-        <button id="btnToggleAudio" class="icon-btn audio-btn" title="Toggle Cyberpunk Sound FX (On/Off)">
-          <span id="audioIcon">🔊</span>
-        </button>
-        <button id="btnDeviceAccess" class="status-badge permission-badge" title="Device Access & Permissions Status (Click to manage)">
-          <span class="status-dot perm-dot" style="background: var(--neon-green);"></span>
-          <span id="permStatusText">🛡️ Access Granted</span>
-        </button>
-        <div id="serverStatus" class="status-badge checking" title="Checking Backend API status">
+
+      <div class="header-right">
+        <!-- Simulation vs Live Mode Segmented Pill -->
+        <div class="mode-toggle-group" title="Switch between Simulated Theoretical OS and Live Physical Device Telemetry">
+          <button id="btnModeSim" class="mode-pill-btn active" type="button">
+            <span class="mode-indicator sim-indicator"></span>
+            <span>Simulation</span>
+          </button>
+          <button id="btnModeLive" class="mode-pill-btn" type="button">
+            <span class="mode-indicator live-indicator"></span>
+            <span>Live System</span>
+          </button>
+        </div>
+
+        <!-- Server Connection Status Badge -->
+        <div id="serverStatus" class="status-badge checking" title="Backend Flask REST API Status">
           <span class="status-dot"></span>
           <span id="serverStatusText">Checking...</span>
         </div>
-        <button id="btnToggleServerConfig" class="icon-btn" title="Configure Vercel Cloud or Localhost URL">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+
+        <!-- Light / Dark Theme Toggle Button -->
+        <button id="btnThemeToggle" class="icon-btn theme-toggle-btn" title="Toggle Dark / Light Theme" aria-label="Toggle Theme">
+          <span id="themeToggleIcon">☀️</span>
         </button>
-        <button id="btnOpenNewTab" class="icon-btn" title="Open in Full Tab / Large Screen">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+
+        <!-- Settings Icon Button (Toggles Settings Dropdown) -->
+        <button id="btnToggleServerConfig" class="icon-btn settings-btn" title="System Settings & Cloud API Endpoint" aria-label="Settings">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
       </div>
     </header>
 
-    <!-- Cloud & Vercel API Configuration Bar -->
-    <div class="vercel-config-card" id="vercelConfigCard" style="display: none;">
-      <div class="vercel-config-row">
-        <div class="vercel-brand">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 19.7778H22L12 2Z"/></svg>
-          <span>Vercel Cloud & API Endpoint:</span>
-        </div>
-        <div class="vercel-input-group">
-          <input type="text" id="customApiUrlInput" class="styled-input-compact" placeholder="https://your-app.vercel.app/api">
-          <button id="btnSaveApiUrl" class="btn btn-sm btn-primary">Save & Connect</button>
-          <button id="btnResetLocalApi" class="btn btn-sm btn-secondary">Localhost</button>
-        </div>
-      </div>
-      <small class="text-dim" style="font-size: 10.5px;">Tip: Paste your live Vercel URL here so the Chrome extension talks directly to your deployed cloud backend!</small>
-    </div>
-
-    <!-- Real-Time Chrome Workload Live Candy Banner -->
-    <div class="chrome-live-banner" id="chromeLiveBanner">
-      <div class="chrome-banner-brand">
-        <div class="chrome-pulse-badge">
-          <span class="pulse-point"></span>
-          <strong id="liveDevicePlatform">DEVICE TELEMETRY</strong>
-        </div>
-        <div class="chrome-metrics-pills">
-          <span class="metric-pill" title="Actual physical hardware RAM on this device">
-            <small>RAM:</small> <strong id="liveChromeRam" class="highlight-cyan">...</strong>
-          </span>
-          <span class="metric-pill" title="Actual logical CPU Cores on this device">
-            <small>Cores:</small> <strong id="liveChromeCount" class="highlight-pink">... Cores</strong>
-          </span>
-          <span class="metric-pill" title="Real-time heap memory consumed by Chrome on this device">
-            <small>Heap:</small> <strong id="liveChromeTabsCount" class="highlight-indigo">... MB</strong>
-          </span>
-          <span class="metric-pill" title="Actual device storage disk quota">
-            <small>Storage:</small> <strong id="liveChromeCpu" class="highlight-amber">... GB</strong>
-          </span>
-          <span class="metric-pill anomaly-pill" id="anomalyAlertPill" title="AI Memory Leak & Zombie Tab Detector">
-            <small>AI Status:</small> <strong id="anomalyAlertText" class="highlight-green">🛡️ All Healthy</strong>
-          </span>
-        </div>
-      </div>
-      <div class="chrome-banner-actions">
-        <label class="live-toggle-label" title="Auto-refresh live device stats every 2.5 seconds">
-          <input type="checkbox" id="toggleLiveStream" checked>
-          <span>Live Stream</span>
-        </label>
-        <button id="btnAutoFreezeLeaks" class="btn btn-sm btn-danger" title="Instantly discard/hibernate all high-RAM background tabs to free memory!">
-          ❄️ Reclaim RAM
-        </button>
-        <button id="btnSyncChrome" class="btn btn-sm btn-cyan" title="Sync live device processes and hardware telemetry">
-          🔄 Sync Device
-        </button>
-        <button id="btnScheduleChromeNow" class="btn btn-sm btn-primary btn-glow" title="Schedule your actual live device workload right now!">
-          ⚡ Schedule Real Device
-        </button>
-      </div>
-    </div>
-
-    <!-- Navigation Tabs -->
-    <nav class="nav-tabs" id="navTabsContainer">
-      <button class="nav-tab active" data-tab="schedulerTab">
-        <span class="tab-icon">⚡</span> Scheduler
-      </button>
-      <button class="nav-tab" data-tab="appsFilesTab">
-        <span class="tab-icon">📱</span> Apps & Files
-      </button>
-      <button class="nav-tab" data-tab="chromeLiveTab">
-        <span class="tab-icon">🌐</span> Real-Time Chrome
-      </button>
-      <button class="nav-tab" data-tab="candlestickTab">
-        <span class="tab-icon">🕯️</span> Candy Processes
-      </button>
-      <button class="nav-tab" data-tab="ganttTab">
-        <span class="tab-icon">📊</span> Gantt Chart
-      </button>
-      <button class="nav-tab" data-tab="simulationTab">
-        <span class="tab-icon">🕹️</span> CPU Simulation
-      </button>
-      <button class="nav-tab" data-tab="compareTab">
-        <span class="tab-icon">⚖️</span> Compare
-      </button>
-      <button class="nav-tab" data-tab="systemTab">
-        <span class="tab-icon">💻</span> All System Tasks
-      </button>
-      <button class="nav-tab" data-tab="historyTab">
-        <span class="tab-icon">🕒</span> History
-      </button>
-    </nav>
-
-    <!-- Main Content Body -->
-    <main class="app-body">
-      <!-- TAB 1: SCHEDULER -->
-      <section id="schedulerTab" class="tab-pane active">
-        <!-- Control Bar -->
-        <div class="panel-card config-card">
-          <div class="config-grid">
-            <div class="form-group">
-              <label for="algorithmSelect">Algorithm</label>
-              <select id="algorithmSelect" class="styled-select">
-                <option value="ai" selected>✨ AI Smart Mode (ML-Assisted)</option>
-                <option value="fcfs">First Come First Served (FCFS)</option>
-                <option value="sjf">Shortest Job First (SJF Non-Preemptive)</option>
-                <option value="rr">Round Robin (RR)</option>
-                <option value="priority">Priority (Non-Preemptive)</option>
-              </select>
-            </div>
-
-            <div class="form-group quantum-group" id="quantumGroup" style="display: none;">
-              <label for="timeQuantum">Time Quantum (q)</label>
-              <input type="number" id="timeQuantum" min="1" max="20" value="2" class="styled-input">
-            </div>
-
-            <div class="form-group">
-              <label for="cpuCoresSelect">CPU Architecture / Cores</label>
-              <select id="cpuCoresSelect" class="styled-select">
-                <option value="1">1 Core (Uniprocessor Single)</option>
-                <option value="2">2 Cores (Dual-Core SMP)</option>
-                <option value="4" selected>4 Cores (Quad-Core SMP Load Balanced)</option>
-                <option value="8">8 Cores (Octa-Core Heavy SMP)</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="presetSelect">Load Preset Workload</label>
-              <select id="presetSelect" class="styled-select">
-                <option value="" disabled selected>-- Select a Preset --</option>
-                <option value="chromeLive">🌐 Real-Time Active Chrome Workload</option>
-                <option value="standard">Standard OS Mixed (4 Tasks)</option>
-                <option value="rendering">Heavy CPU Rendering (5 Tasks)</option>
-                <option value="interactive">Fast Interactive Web/API (4 Tasks)</option>
-                <option value="roundrobin">Round Robin Time-Slice Demo (4 Tasks)</option>
-                <option value="starvation">Priority Starvation Demo (5 Tasks)</option>
-              </select>
-            </div>
+    <!-- Settings & Cloud Configuration Dropdown / Modal -->
+    <div class="settings-dropdown-panel" id="vercelConfigCard" style="display: none;">
+      <div class="settings-panel-inner">
+        <div class="settings-panel-header">
+          <div class="settings-title-group">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <h3>Settings & Integration</h3>
           </div>
+          <button id="btnCloseSettingsPanel" class="btn-ghost icon-btn-sm" title="Close Settings">✕</button>
         </div>
 
-        <!-- Task Input Table Section -->
-        <div class="panel-card tasks-card">
-          <div class="card-header-row">
-            <div class="card-title-group">
-              <h2 class="card-title">Task Queue</h2>
-              <span class="task-counter" id="taskCountBadge">Loading...</span>
-            </div>
-            <div class="table-actions">
-              <button id="btnAiAutoPredict" class="btn btn-sm btn-ai" title="Predict Burst & Priority for all empty/zero fields with AI">
-                ✨ AI Auto-Estimate
-              </button>
-              <button id="btnRandomize" class="btn btn-sm btn-secondary" title="Generate random tasks">
-                🎲 Randomize
-              </button>
-              <button id="btnClearAll" class="btn btn-sm btn-danger" title="Clear all tasks">
-                🗑️ Clear
-              </button>
-            </div>
+        <div class="settings-section">
+          <label class="settings-label" for="customApiUrlInput">Backend API Endpoint (Vercel Cloud or Localhost)</label>
+          <div class="settings-input-row">
+            <input type="text" id="customApiUrlInput" class="styled-input flex-1" placeholder="http://127.0.0.1:5000/api or https://your-app.vercel.app/api">
+            <button id="btnSaveApiUrl" class="btn btn-primary btn-sm">Save</button>
+            <button id="btnResetLocalApi" class="btn btn-secondary btn-sm">Reset</button>
           </div>
+          <span class="settings-hint">Connect the interface to your running local Python Flask server or deployed cloud endpoint.</span>
+        </div>
 
-          <div class="table-scroll-wrapper">
-            <table class="tasks-table" id="tasksInputTable">
-              <thead>
-                <tr>
-                  <th style="width: 34%;">Process / Task Name</th>
-                  <th style="width: 16%;">Arrival (AT)</th>
-                  <th style="width: 18%;">Burst (BT)</th>
-                  <th style="width: 18%;">Priority <small>(1=High)</small></th>
-                  <th style="width: 14%; text-align: center;">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="taskTableBody">
-                <!-- Task rows dynamically injected here -->
-              </tbody>
-            </table>
-          </div>
-
-          <div class="table-footer-row">
-            <button id="btnAddTask" class="btn btn-outline">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              Add New Process
+        <div class="settings-row-actions">
+          <div class="settings-action-item">
+            <span class="action-item-title">Device Access & Permissions</span>
+            <button id="btnDeviceAccess" class="status-badge permission-badge" title="Device Access & Permissions Status (Click to manage)">
+              <span class="status-dot perm-dot"></span>
+              <span id="permStatusText">Access Granted</span>
             </button>
-            <div class="primary-actions">
-              <button id="btnCompareAll" class="btn btn-secondary">
-                📊 Compare All
-              </button>
-              <button id="btnRunSchedule" class="btn btn-primary btn-glow">
-                🚀 Run Schedule
-              </button>
-            </div>
+          </div>
+
+          <div class="settings-action-item">
+            <span class="action-item-title">Sound Effects (FX)</span>
+            <button id="btnToggleAudio" class="btn btn-secondary btn-sm" title="Toggle Sound FX (On/Off)">
+              <span id="audioIcon">🔊</span> Audio FX
+            </button>
+          </div>
+
+          <div class="settings-action-item">
+            <span class="action-item-title">Display View</span>
+            <button id="btnOpenNewTab" class="btn btn-secondary btn-sm" title="Open Dashboard in Full Browser Tab">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg> Full Tab
+            </button>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
 
-      <!-- TAB: DEVICE OPEN APPS & FILES INSPECTOR -->
-      <section id="appsFilesTab" class="tab-pane">
-        <div class="panel-card">
-          <div class="card-header-row">
-            <div>
-              <div class="candy-title-row">
-                <span class="candy-badge" style="background: rgba(0, 255, 136, 0.15); color: var(--neon-green); border-color: rgba(0, 255, 136, 0.4);">
-                  DEVICE TELEMETRY & INSPECTOR
-                </span>
-                <span class="metric-sub" id="appsFilesDeviceBadge">📱 Mobile / Desktop Inspector</span>
+    <!-- Main Layout Grid: Sidebar + Content Area -->
+    <div class="app-layout">
+      <!-- Left Sidebar Navigation -->
+      <aside class="app-sidebar" id="appSidebar">
+        <div class="sidebar-nav-group">
+          <span class="sidebar-group-title">WORKSPACE</span>
+          <nav class="sidebar-nav">
+            <!-- 1. Dashboard -->
+            <button class="sidebar-item nav-tab active" data-section="dashboardTab" data-tab="dashboardTab" id="navItemDashboard">
+              <svg class="sidebar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+              <span class="sidebar-label">Dashboard</span>
+            </button>
+
+            <!-- 2. Scheduler -->
+            <button class="sidebar-item nav-tab" data-section="schedulerTab" data-tab="schedulerTab" id="navItemScheduler">
+              <svg class="sidebar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              <span class="sidebar-label">Scheduler</span>
+            </button>
+
+            <!-- 3. Results & Visualization -->
+            <button class="sidebar-item nav-tab" data-section="resultsSection" data-tab="ganttTab" id="navItemResults">
+              <svg class="sidebar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+              <span class="sidebar-label">Results</span>
+            </button>
+
+            <!-- 4. Live System -->
+            <button class="sidebar-item nav-tab" data-section="liveSection" data-tab="appsFilesTab" id="navItemLive">
+              <svg class="sidebar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+              <span class="sidebar-label">Live System</span>
+            </button>
+          </nav>
+        </div>
+
+        <!-- Sidebar Telemetry Quick Strip -->
+        <div class="sidebar-footer-strip">
+          <div class="telemetry-compact-row">
+            <span class="telemetry-dot"></span>
+            <span class="telemetry-compact-text" id="liveDevicePlatform">Windows PC</span>
+          </div>
+          <div class="telemetry-badges-row">
+            <span class="telemetry-badge">RAM <strong id="liveChromeRam">...</strong></span>
+            <span class="telemetry-badge"><strong id="liveChromeCount">... Cores</strong></span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Dynamic Content Workspace -->
+      <main class="app-content-area" id="mainContentArea">
+
+        <!-- ============================================================ -->
+        <!-- SECTION 1: DASHBOARD (Home & Overview) -->
+        <!-- ============================================================ -->
+        <section id="dashboardTab" class="tab-pane active">
+          <!-- Overview Hero Banner -->
+          <div class="card dashboard-hero-card">
+            <div class="hero-header-row">
+              <div>
+                <span class="badge badge-accent">SYSTEM TELEMETRY & OVERVIEW</span>
+                <h2 class="hero-title">Operating System Process Scheduler</h2>
+                <p class="hero-subtitle">Comprehensive multi-algorithm OS scheduling simulation with AI burst prediction and real-time Windows telemetry.</p>
               </div>
-              <h2 class="card-title">Active Running Applications & Open Files</h2>
-              <p class="subtitle">Complete inspection of active apps, sandboxes, and workspace files running on this device</p>
-            </div>
-            <div class="table-actions">
-              <button id="btnRequestPermissionExplicit" class="btn btn-sm btn-cyan" title="Request or update device access permission">
-                🛡️ Manage Access
-              </button>
-              <button id="btnInspectFolderFiles" class="btn btn-sm btn-secondary" title="Pick a folder or files from your device to inspect active files">
-                📂 Pick Folder / Files
-              </button>
-              <button id="btnInspectLiveWindow" class="btn btn-sm btn-secondary" title="Share an active application window or full screen live">
-                🖥️ Inspect Window
-              </button>
-              <button id="btnRefreshAppsFiles" class="btn btn-sm btn-cyan" title="Re-scan device apps and active files">
-                🔄 Refresh
-              </button>
-              <button id="btnImportAppsToScheduler" class="btn btn-sm btn-primary btn-glow" title="Load selected open apps into CPU scheduler">
-                ⚡ Load into Scheduler
-              </button>
-            </div>
-          </div>
-
-          <!-- Quick Hardware & Inspection Summary Cards -->
-          <div class="summary-cards-grid" style="margin-bottom: 16px;">
-            <div class="metric-card">
-              <span class="metric-label">Open Applications</span>
-              <span class="metric-value highlight-cyan" id="statAppsCount">0</span>
-              <span class="metric-sub" id="statAppsSub">Active on device</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-label">Active Inspected Files</span>
-              <span class="metric-value highlight-indigo" id="statFilesCount">0</span>
-              <span class="metric-sub" id="statFilesSub">Loaded in memory / folder</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-label">Device Physical RAM</span>
-              <span class="metric-value highlight-green" id="statAppsRam">...</span>
-              <span class="metric-sub" id="statAppsRamSub">Total device memory</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-label">Permission Status</span>
-              <span class="metric-value highlight-green" id="statPermissionState">Granted</span>
-              <span class="metric-sub" id="statPermissionSub">Full device inspection</span>
-            </div>
-          </div>
-
-          <!-- Live Window Video Preview Container (Initially collapsed) -->
-          <div id="liveWindowStreamContainer" class="live-window-preview-card" style="display: none; margin-bottom: 16px;">
-            <div class="live-window-header">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="pulse-point"></span>
-                <strong>LIVE APPLICATION WINDOW INSPECTION</strong>
-                <span class="badge badge-sm" id="liveWindowStreamTitle">Active Window</span>
-              </div>
-              <button id="btnCloseWindowStream" class="btn btn-xs btn-danger">Stop Stream</button>
-            </div>
-            <div class="video-preview-wrapper" style="margin-top: 8px; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid rgba(0, 255, 136, 0.2);">
-              <video id="liveWindowVideo" autoplay playsinline muted style="width: 100%; max-height: 280px; object-fit: contain;"></video>
-            </div>
-          </div>
-
-          <!-- Section 1: Active Running Applications Table -->
-          <div style="margin-bottom: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
-              <h3 style="font-size: 13.5px; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 6px;">
-                <span>🚀</span> Active Running Applications & Browser Tabs
-              </h3>
-              <input type="text" id="searchAppsInput" class="styled-input-compact" placeholder="Filter apps..." style="max-width: 180px;">
-            </div>
-
-            <div class="table-scroll-wrapper" style="max-height: 250px;">
-              <table class="chrome-live-table" id="appsLiveTable">
-                <thead>
-                  <tr>
-                    <th style="width: 6%;"><input type="checkbox" id="selectAllApps" checked></th>
-                    <th style="width: 12%;">PID</th>
-                    <th style="width: 18%;">Category</th>
-                    <th style="width: 38%;">Application Name / Title</th>
-                    <th style="width: 14%;">RAM (MB)</th>
-                    <th style="width: 12%;">Status</th>
-                  </tr>
-                </thead>
-                <tbody id="appsLiveTableBody">
-                  <tr><td colspan="6" class="text-center text-muted" style="padding: 16px;">Loading device applications...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Section 2: Active Files & Workspace Explorer Table -->
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
-              <h3 style="font-size: 13.5px; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 6px;">
-                <span>📂</span> Open & Active Files on this Device
-              </h3>
-              <div style="display: flex; gap: 6px; align-items: center;">
-                <input type="text" id="searchFilesInput" class="styled-input-compact" placeholder="Filter files..." style="max-width: 180px;">
-                <button id="btnPickFolderInline" class="btn btn-xs btn-secondary" title="Inspect any folder on your device">
-                  📁 Pick Folder
+              <div class="hero-actions">
+                <button class="btn btn-primary" id="btnDashboardRunQuick" title="Jump to Scheduler">
+                  ⚡ Open Scheduler
                 </button>
               </div>
             </div>
 
-            <div class="table-scroll-wrapper" style="max-height: 250px;">
-              <table class="chrome-live-table" id="filesLiveTable">
+            <!-- Hardware Telemetry Metric Cards (Replaces crowded top bar) -->
+            <div class="telemetry-grid">
+              <div class="telemetry-card">
+                <span class="telemetry-label">Physical Hardware RAM</span>
+                <span class="telemetry-value text-accent" id="dashRamVal">...</span>
+                <span class="telemetry-sub">Host Memory Detected</span>
+              </div>
+              <div class="telemetry-card">
+                <span class="telemetry-label">Logical CPU Cores</span>
+                <span class="telemetry-value text-primary" id="dashCoresVal">...</span>
+                <span class="telemetry-sub">SMP Parallel Processing</span>
+              </div>
+              <div class="telemetry-card">
+                <span class="telemetry-label">Browser Heap Memory</span>
+                <span class="telemetry-value text-success" id="liveChromeTabsCount">... MB</span>
+                <span class="telemetry-sub">Active Process Heap</span>
+              </div>
+              <div class="telemetry-card">
+                <span class="telemetry-label">Storage Disk Quota</span>
+                <span class="telemetry-value text-warning" id="liveChromeCpu">... GB</span>
+                <span class="telemetry-sub">System Storage Allocation</span>
+              </div>
+              <div class="telemetry-card" id="anomalyAlertPill" title="AI Memory Leak & Tab Health Monitor">
+                <span class="telemetry-label">AI Health Monitor</span>
+                <span class="telemetry-value text-success" id="anomalyAlertText">🛡️ All Healthy</span>
+                <span class="telemetry-sub">Starvation & Leak Watcher</span>
+              </div>
+            </div>
+
+            <!-- Dashboard Quick Actions Bar -->
+            <div class="chrome-live-banner" id="chromeLiveBanner">
+              <div class="live-controls-row">
+                <label class="live-toggle-label" title="Auto-refresh live device stats periodically">
+                  <input type="checkbox" id="toggleLiveStream" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-text">Live Telemetry Stream</span>
+                </label>
+                <div class="quick-action-buttons">
+                  <button id="btnAutoFreezeLeaks" class="btn btn-danger btn-sm" title="Hibernate high-RAM tabs to reclaim memory">
+                    ❄️ Reclaim RAM
+                  </button>
+                  <button id="btnSyncChrome" class="btn btn-secondary btn-sm" title="Sync live hardware telemetry and processes">
+                    🔄 Sync Device
+                  </button>
+                  <button id="btnScheduleChromeNow" class="btn btn-primary btn-sm" title="Import live device processes and run immediately">
+                    ⚡ Schedule Real Device
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Cards Grid (Clear Architecture & Guide) -->
+          <div class="features-grid">
+            <div class="card feature-card">
+              <div class="feature-icon">✨</div>
+              <h3 class="feature-heading">AI Smart Mode</h3>
+              <p class="feature-text">Random Forest ML pipeline predicts task burst durations, categorizes workload patterns (rendering, scraping, video), and prevents priority starvation.</p>
+              <button class="btn btn-secondary btn-sm" id="btnDashAiJump">Explore AI Mode</button>
+            </div>
+
+            <div class="card feature-card">
+              <div class="feature-icon">📊</div>
+              <h3 class="feature-heading">Visual Gantt & Multi-Core</h3>
+              <p class="feature-text">High-resolution execution timeline with 1, 2, 4, and 8 Cores SMP load balancing, Amdahl's Law speedup analytics, and exact task block tracking.</p>
+              <button class="btn btn-secondary btn-sm" id="btnDashGanttJump">View Gantt Chart</button>
+            </div>
+
+            <div class="card feature-card">
+              <div class="feature-icon">⚖️</div>
+              <h3 class="feature-heading">Algorithm Comparison</h3>
+              <p class="feature-text">Benchmarks FCFS, SJF, Round Robin, Priority, and AI Smart Mode simultaneously on identical workloads with automated optimal winner analysis.</p>
+              <button class="btn btn-secondary btn-sm" id="btnDashCompareJump">Compare Arena</button>
+            </div>
+
+            <div class="card feature-card">
+              <div class="feature-icon">🕹️</div>
+              <h3 class="feature-heading">CPU Execution Simulation</h3>
+              <p class="feature-text">Interactive step-by-step CPU execution player. Play, pause, step tick-by-tick (+1s), and watch tasks transition between Ready and Terminated states.</p>
+              <button class="btn btn-secondary btn-sm" id="btnDashSimJump">Launch Simulation</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- SECTION 2: SCHEDULER (Main Core Task Queue & Config) -->
+        <!-- ============================================================ -->
+        <section id="schedulerTab" class="tab-pane">
+          <!-- Step 1: Algorithm Selection & Advanced Options -->
+          <div class="card scheduler-step-card">
+            <div class="step-badge-row">
+              <span class="step-num-badge">STEP 1</span>
+              <span class="step-title">Select CPU Scheduling Algorithm</span>
+            </div>
+
+            <div class="step1-controls-grid">
+              <div class="form-group flex-2">
+                <label for="algorithmSelect">Scheduling Algorithm</label>
+                <select id="algorithmSelect" class="styled-select">
+                  <option value="ai" selected>✨ AI Smart Mode (ML-Assisted Scheduling)</option>
+                  <option value="fcfs">First Come First Served (FCFS)</option>
+                  <option value="sjf">Shortest Job First (SJF Non-Preemptive)</option>
+                  <option value="rr">Round Robin (RR Time-Slice)</option>
+                  <option value="priority">Priority Scheduling (Non-Preemptive)</option>
+                </select>
+              </div>
+
+              <!-- Time Quantum (Dynamic for Round Robin) -->
+              <div class="form-group quantum-group flex-1" id="quantumGroup" style="display: none;">
+                <label for="timeQuantum">Time Quantum (q)</label>
+                <input type="number" id="timeQuantum" min="1" max="20" value="2" class="styled-input">
+              </div>
+
+              <!-- Collapsible Toggle Button for Advanced Options -->
+              <div class="form-group flex-1" style="align-self: flex-end;">
+                <button id="btnToggleAdvancedOptions" class="btn btn-secondary btn-block" type="button" title="Configure CPU Cores & Presets">
+                  <span>⚙️ Advanced Options</span>
+                  <span class="arrow-indicator" id="advancedArrowIcon">▾</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Collapsible Advanced Options Panel -->
+            <div id="advancedOptionsCollapsible" class="advanced-options-panel" style="display: none;">
+              <div class="advanced-grid">
+                <div class="form-group">
+                  <label for="cpuCoresSelect">CPU Architecture / Cores (SMP)</label>
+                  <select id="cpuCoresSelect" class="styled-select">
+                    <option value="1">1 Core (Uniprocessor Single)</option>
+                    <option value="2">2 Cores (Dual-Core SMP)</option>
+                    <option value="4" selected>4 Cores (Quad-Core SMP Load Balanced)</option>
+                    <option value="8">8 Cores (Octa-Core Heavy SMP)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="presetSelect">Load Preset Workload</label>
+                  <select id="presetSelect" class="styled-select">
+                    <option value="" disabled selected>-- Select a Preset Workload --</option>
+                    <option value="chromeLive">🌐 Real-Time Active Chrome Workload</option>
+                    <option value="standard">Standard OS Mixed (4 Tasks)</option>
+                    <option value="rendering">Heavy CPU Rendering (5 Tasks)</option>
+                    <option value="interactive">Fast Interactive Web/API (4 Tasks)</option>
+                    <option value="roundrobin">Round Robin Time-Slice Demo (4 Tasks)</option>
+                    <option value="starvation">Priority Starvation Demo (5 Tasks)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Task Queue Configuration Table -->
+          <div class="card scheduler-step-card">
+            <div class="step-badge-row space-between">
+              <div class="step-title-group">
+                <span class="step-num-badge">STEP 2</span>
+                <span class="step-title">Configure Task Queue</span>
+                <span class="task-counter-pill" id="taskCountBadge">Loading...</span>
+              </div>
+              <div class="table-actions-group">
+                <button id="btnRandomize" class="btn btn-secondary btn-sm" title="Generate random sample OS tasks">
+                  🎲 Randomize
+                </button>
+                <button id="btnAiAutoPredict" class="btn btn-secondary btn-sm" title="Predict empty Burst & Priority values using ML model">
+                  ✨ AI Auto-Estimate
+                </button>
+                <button id="btnClearAll" class="btn btn-danger btn-sm" title="Remove all tasks from queue">
+                  🗑️ Clear
+                </button>
+              </div>
+            </div>
+
+            <div class="table-scroll-wrapper">
+              <table class="tasks-table" id="tasksInputTable">
                 <thead>
                   <tr>
-                    <th style="width: 25%;">File Name</th>
-                    <th style="width: 18%;">Associated App</th>
-                    <th style="width: 33%;">Path / Location</th>
-                    <th style="width: 12%;">File Size</th>
-                    <th style="width: 12%;">Status</th>
+                    <th style="width: 36%;">Process / Task Name</th>
+                    <th style="width: 16%;">Arrival (AT)</th>
+                    <th style="width: 16%;">Burst (BT)</th>
+                    <th style="width: 18%;">Priority <small>(1=High)</small></th>
+                    <th style="width: 14%; text-align: center;">Actions</th>
                   </tr>
                 </thead>
-                <tbody id="filesLiveTableBody">
-                  <tr><td colspan="5" class="text-center text-muted" style="padding: 16px;">Loading device files...</td></tr>
+                <tbody id="taskTableBody">
+                  <!-- Task rows dynamically injected by popup.js -->
                 </tbody>
               </table>
             </div>
-          </div>
 
-        </div>
-      </section>
+            <div class="table-footer-bar">
+              <button id="btnAddTask" class="btn btn-secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add Process
+              </button>
 
-      <!-- TAB: REAL-TIME CHROME MONITOR & INSPECTOR -->
-      <section id="chromeLiveTab" class="tab-pane">
-        <div class="panel-card">
-          <div class="card-header-row">
-            <div>
-              <h2 class="card-title">Real-Time Google Chrome Architecture</h2>
-              <p class="subtitle">Direct inspection of live tabs, renderer sandboxes, GPU acceleration, and background network services</p>
-            </div>
-            <div class="table-actions">
-              <button id="btnFetchChromeProcs" class="btn btn-sm btn-cyan">🔄 Refresh Chrome</button>
-              <button id="btnImportAllChrome" class="btn btn-sm btn-primary">⚡ Load into Scheduler</button>
-            </div>
-          </div>
-
-          <!-- Chrome Subsystem Stats -->
-          <div class="summary-cards-grid" style="margin-bottom: 12px;">
-            <div class="metric-card">
-              <span class="metric-label">Device Physical RAM</span>
-              <span class="metric-value highlight-cyan" id="chromeTotalRamDetail">...</span>
-              <span class="metric-sub" id="chromeTotalRamMb">Hardware Memory</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-label">Hardware CPU Cores</span>
-              <span class="metric-value highlight-indigo" id="chromeRendererCount">...</span>
-              <span class="metric-sub" id="chromePlatformDetail">Physical Cores</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-label">Browser Heap RAM</span>
-              <span class="metric-value highlight-green" id="chromeGpuStatus">...</span>
-              <span class="metric-sub" id="chromeGpuRam">Real Memory</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-label">Disk Storage Quota</span>
-              <span class="metric-value highlight-pink" id="chromePidCount">...</span>
-              <span class="metric-sub" id="chromeStorageDetail">Browser Cache</span>
-            </div>
-          </div>
-
-          <!-- Chrome Processes Table -->
-          <div class="table-scroll-wrapper" style="max-height: 280px;">
-            <table class="chrome-live-table" id="chromeLiveTable">
-              <thead>
-                <tr>
-                  <th style="width: 6%;"><input type="checkbox" id="selectAllChromeProcs" checked></th>
-                  <th style="width: 14%;">PID</th>
-                  <th style="width: 22%;">Process Type</th>
-                  <th style="width: 34%;">Details / Tab Title</th>
-                  <th style="width: 14%;">RAM (MB)</th>
-                  <th style="width: 10%;">CPU %</th>
-                </tr>
-              </thead>
-              <tbody id="chromeLiveTableBody">
-                <tr><td colspan="6" class="text-center text-muted" style="padding: 16px;">Inspecting live Chrome processes...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB: RED & GREEN CANDLESTICK PROCESS VISUALIZER -->
-      <section id="candlestickTab" class="tab-pane">
-        <div class="panel-card candy-card">
-          <div class="card-header-row">
-            <div>
-              <div class="candy-title-row">
-                <span class="candy-badge">BULL & BEAR CANDLESTICK ENGINE</span>
-                <h2 class="card-title">Live Process Candlestick Visualizer</h2>
-              </div>
-              <p class="subtitle">Watch live candlesticks fluctuate, burn down, and glow in Red & Green as the CPU schedules processes!</p>
-            </div>
-            <div class="table-actions">
-              <button id="btnCandlePulse" class="btn btn-sm btn-candy">⚡ Animate Pulse</button>
-              <button id="btnSyncCandleChrome" class="btn btn-sm btn-green">🔄 Sync Chrome</button>
-            </div>
-          </div>
-
-          <!-- Candlestick Live Simulation Toolbar -->
-          <div class="candle-sim-toolbar">
-            <div class="candle-sim-status">
-              <span class="candle-clock-pill">Clock: <strong id="candleClockTime">T = 0s</strong></span>
-              <span class="candle-exec-pill" id="candleActivePill">CPU Core: Idle</span>
-            </div>
-            <div class="candle-sim-controls">
-              <button id="btnCandlePlay" class="btn btn-sm btn-primary btn-glow">▶ Run Live Candles</button>
-              <button id="btnCandleStep" class="btn btn-sm btn-secondary">⏭ Step</button>
-              <button id="btnCandleReset" class="btn btn-sm btn-danger">🔄 Reset</button>
-              <select id="candleSpeedSelect" class="styled-select-mini">
-                <option value="1000">Slow (1x)</option>
-                <option value="500" selected>Normal (2x)</option>
-                <option value="250">Turbo (4x)</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Candlestick Visual Stage -->
-          <div class="candlestick-stage-wrapper">
-            <div class="candlestick-stage" id="candlestickStage">
-              <!-- Dynamically populated red & green candlestick bars -->
-            </div>
-          </div>
-
-          <!-- Candlestick Legend -->
-          <div class="candy-legend-row">
-            <div class="candy-legend-item"><span class="candy-dot green"></span> Bull Candle (Low Load / Healthy Tab)</div>
-            <div class="candy-legend-item"><span class="candy-dot red"></span> Bear Candle (High Burst / Heavy CPU / GPU)</div>
-            <div class="candy-legend-item"><span class="candy-dot pulse"></span> Pulsing Candle (Currently Active on CPU)</div>
-            <div class="candy-legend-item"><span class="candy-dot done"></span> Solid Dim (Completed / Finished)</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB 2: GANTT CHART & RESULTS -->
-      <section id="ganttTab" class="tab-pane">
-        <!-- Results Summary Cards -->
-        <div class="summary-cards-grid" id="summaryCardsContainer">
-          <div class="metric-card">
-            <span class="metric-label">Algorithm</span>
-            <span class="metric-value" id="resAlgorithm">-</span>
-            <span class="metric-sub" id="resTaskCount">0 processes scheduled</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Avg Waiting Time</span>
-            <span class="metric-value highlight-cyan" id="resAvgWT">0.00 <small>s</small></span>
-            <span class="metric-sub">Average queue delay</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Avg Turnaround Time</span>
-            <span class="metric-value highlight-indigo" id="resAvgTAT">0.00 <small>s</small></span>
-            <span class="metric-sub">Completion - Arrival</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">CPU Utilization</span>
-            <span class="metric-value highlight-green" id="resCpuUtil">100%</span>
-            <span class="metric-sub" id="resTotalTime">Makespan: 0s</span>
-          </div>
-        </div>
-
-        <!-- Gantt Chart Card -->
-        <div class="panel-card">
-          <div class="card-header-row">
-            <div>
-              <h2 class="card-title">Gantt Chart Timeline</h2>
-              <div id="multicoreStatsBar" class="multicore-stats-bar" style="display: none;">
-                <span class="mc-pill">Cores: <strong id="mcCoresCount">4 Cores</strong></span>
-                <span class="mc-pill highlight-green">Amdahl Speedup: <strong id="mcSpeedupVal">2.85x</strong></span>
-                <span class="mc-pill highlight-cyan">Parallel Efficiency: <strong id="mcEfficiencyVal">71.3%</strong></span>
-              </div>
-            </div>
-            <div class="gantt-legend" id="ganttLegend"></div>
-          </div>
-
-          <!-- Multi-Core Parallel Gantt Container -->
-          <div id="multicoreGanttContainer" class="multicore-gantt-container" style="display: none;">
-            <!-- Dynamically populated core rows (Core 0, Core 1, Core 2, Core 3...) -->
-          </div>
-
-          <!-- Single-Core Standard Gantt Track (Fallback) -->
-          <div class="gantt-outer-container" id="singleGanttContainer">
-            <div class="gantt-track" id="ganttTrack">
-              <div class="empty-state-notice">Run a schedule from the Scheduler tab to visualize Gantt blocks.</div>
-            </div>
-            <div class="gantt-timeline-axis" id="ganttTimelineAxis"></div>
-          </div>
-        </div>
-
-        <!-- Process Detailed Table -->
-        <div class="panel-card">
-          <div class="card-header-row">
-            <h2 class="card-title">Execution Metrics Table</h2>
-            <button id="btnExportJson" class="btn btn-sm btn-outline">📥 Export JSON</button>
-          </div>
-          <div class="table-scroll-wrapper">
-            <table class="metrics-table" id="metricsTable">
-              <thead>
-                <tr>
-                  <th>Process</th>
-                  <th>Arrival (AT)</th>
-                  <th>Burst (BT)</th>
-                  <th>Priority</th>
-                  <th>Start</th>
-                  <th>Completion (CT)</th>
-                  <th>Turnaround (TAT)</th>
-                  <th>Waiting (WT)</th>
-                  <th>Response (RT)</th>
-                </tr>
-              </thead>
-              <tbody id="metricsTableBody">
-                <tr><td colspan="9" class="text-center text-muted">No schedule calculated yet</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB 3: CPU SIMULATION PLAYER -->
-      <section id="simulationTab" class="tab-pane">
-        <div class="panel-card sim-controls-card">
-          <div class="sim-header-row">
-            <div class="sim-status-group">
-              <span class="sim-clock-badge">Clock: <strong id="simCurrentTime">T = 0s</strong></span>
-              <span class="sim-state-badge" id="simStatusBadge">Idle</span>
-            </div>
-            <div class="sim-player-buttons">
-              <button id="btnSimReset" class="btn btn-sm btn-secondary" title="Reset Simulation">🔄 Reset</button>
-              <button id="btnSimStep" class="btn btn-sm btn-secondary" title="Step +1 second">⏭ Step</button>
-              <button id="btnSimPlay" class="btn btn-sm btn-primary" title="Play / Pause Simulation">▶ Play</button>
-              <div class="sim-speed-control">
-                <label for="simSpeedSelect">Speed:</label>
-                <select id="simSpeedSelect" class="styled-select-mini">
-                  <option value="1200">0.5x</option>
-                  <option value="600" selected>1x</option>
-                  <option value="300">2x</option>
-                  <option value="100">5x</option>
-                </select>
+              <!-- Step 3: Primary Execution Actions -->
+              <div class="step-actions-group">
+                <button id="btnCompareAll" class="btn btn-secondary" title="Benchmark all 5 algorithms simultaneously">
+                  📊 Compare All
+                </button>
+                <button id="btnRunSchedule" class="btn btn-primary" title="Execute schedule and visualize timeline">
+                  ▶ Run Scheduler
+                </button>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <!-- Visual Core Stage -->
-        <div class="sim-stage-grid">
-          <!-- Active CPU Cores Stage (Supports 1, 2, 4, 8 Cores SMP) -->
-          <div class="cpu-stage-panel">
-            <div class="core-stage-header">
-              <div class="core-header">
-                <span class="chip-dot"></span>
-                <h3 id="simCoresHeaderTitle">CPU SMP EXECUTION CORES</h3>
-              </div>
-              <span class="core-mode-tag" id="simCoresModeTag">4 Cores Active</span>
+        <!-- ============================================================ -->
+        <!-- SECTION 3: RESULTS & VISUALIZATION (Sub-Tabs Container) -->
+        <!-- ============================================================ -->
+        <div id="resultsSection" class="section-container" style="display: none;">
+          <!-- Results Sub-Navigation Bar -->
+          <div class="sub-nav-bar">
+            <div class="sub-nav-pills">
+              <button class="sub-nav-pill nav-tab active" data-tab="ganttTab" id="subTabGantt">
+                📊 Gantt Chart & Metrics
+              </button>
+              <button class="sub-nav-pill nav-tab" data-tab="simulationTab" id="subTabSimulation">
+                🕹️ CPU Simulation
+              </button>
+              <button class="sub-nav-pill nav-tab" data-tab="compareTab" id="subTabCompare">
+                ⚖️ Benchmark & Compare
+              </button>
+              <button class="sub-nav-pill nav-tab" data-tab="historyTab" id="subTabHistory">
+                🕒 History & Records
+              </button>
             </div>
-            <div class="cores-dynamic-grid" id="simCoresContainer">
-              <!-- Dynamically rendered core boxes -->
-              <div class="panel-card cpu-core-box">
-                <div class="core-header">
-                  <span class="chip-dot"></span>
-                  <h3>CPU CORE 0 (Active)</h3>
+          </div>
+
+          <!-- SUB-PANE 3.1: GANTT CHART & METRICS -->
+          <section id="ganttTab" class="tab-pane active">
+            <!-- Results Summary Cards -->
+            <div class="summary-cards-grid" id="summaryCardsContainer">
+              <div class="metric-card">
+                <span class="metric-label">Algorithm</span>
+                <span class="metric-value" id="resAlgorithm">-</span>
+                <span class="metric-sub" id="resTaskCount">0 processes scheduled</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">Avg Waiting Time</span>
+                <span class="metric-value text-accent" id="resAvgWT">0.00 <small>s</small></span>
+                <span class="metric-sub">Average queue delay</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">Avg Turnaround Time</span>
+                <span class="metric-value text-primary" id="resAvgTAT">0.00 <small>s</small></span>
+                <span class="metric-sub">Completion - Arrival</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">CPU Utilization</span>
+                <span class="metric-value text-success" id="resCpuUtil">100%</span>
+                <span class="metric-sub" id="resTotalTime">Makespan: 0s</span>
+              </div>
+            </div>
+
+            <!-- Gantt Chart Card -->
+            <div class="card gantt-main-card">
+              <div class="card-header-bar">
+                <div>
+                  <h3 class="card-title">Gantt Chart Execution Timeline</h3>
+                  <div id="multicoreStatsBar" class="multicore-stats-bar" style="display: none;">
+                    <span class="mc-pill">Cores: <strong id="mcCoresCount">4 Cores</strong></span>
+                    <span class="mc-pill text-success">Amdahl Speedup: <strong id="mcSpeedupVal">2.85x</strong></span>
+                    <span class="mc-pill text-accent">Efficiency: <strong id="mcEfficiencyVal">71.3%</strong></span>
+                  </div>
                 </div>
-                <div class="core-content" id="cpuCoreDisplay">
-                  <div class="cpu-idle-state">
-                    <div class="cpu-pulse-ring"></div>
-                    <p>CPU is Idle</p>
-                    <small>Ready queue is empty or awaiting start</small>
+                <div class="gantt-legend" id="ganttLegend"></div>
+              </div>
+
+              <!-- Multi-Core Parallel Gantt Container -->
+              <div id="multicoreGanttContainer" class="multicore-gantt-container" style="display: none;">
+                <!-- Dynamically populated core rows -->
+              </div>
+
+              <!-- Single-Core Standard Gantt Track (Fallback) -->
+              <div class="gantt-outer-container" id="singleGanttContainer">
+                <div class="gantt-track" id="ganttTrack">
+                  <div class="empty-state-notice">Run a schedule from the Scheduler tab to visualize execution timeline blocks.</div>
+                </div>
+                <div class="gantt-timeline-axis" id="ganttTimelineAxis"></div>
+              </div>
+            </div>
+
+            <!-- Detailed Execution Metrics Table -->
+            <div class="card metrics-card">
+              <div class="card-header-bar">
+                <h3 class="card-title">Per-Process Execution Metrics Table</h3>
+                <button id="btnExportJson" class="btn btn-secondary btn-sm">📥 Export JSON</button>
+              </div>
+              <div class="table-scroll-wrapper">
+                <table class="metrics-table" id="metricsTable">
+                  <thead>
+                    <tr>
+                      <th>Process</th>
+                      <th>Arrival (AT)</th>
+                      <th>Burst (BT)</th>
+                      <th>Priority</th>
+                      <th>Start</th>
+                      <th>Completion (CT)</th>
+                      <th>Turnaround (TAT)</th>
+                      <th>Waiting (WT)</th>
+                      <th>Response (RT)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="metricsTableBody">
+                    <tr><td colspan="9" class="text-center text-muted">No schedule calculated yet. Run the scheduler from the Scheduler tab.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- SUB-PANE 3.2: CPU SIMULATION PLAYER -->
+          <section id="simulationTab" class="tab-pane">
+            <div class="card sim-controls-card">
+              <div class="sim-header-row">
+                <div class="sim-status-group">
+                  <span class="sim-clock-badge">Clock: <strong id="simCurrentTime">T = 0s</strong></span>
+                  <span class="sim-state-badge" id="simStatusBadge">Idle</span>
+                </div>
+                <div class="sim-player-buttons">
+                  <button id="btnSimReset" class="btn btn-secondary btn-sm" title="Reset Simulation">🔄 Reset</button>
+                  <button id="btnSimStep" class="btn btn-secondary btn-sm" title="Step +1 second">⏭ Step</button>
+                  <button id="btnSimPlay" class="btn btn-primary btn-sm" title="Play / Pause Simulation">▶ Play</button>
+                  <div class="sim-speed-control">
+                    <label for="simSpeedSelect">Speed:</label>
+                    <select id="simSpeedSelect" class="styled-select-mini">
+                      <option value="1200">0.5x</option>
+                      <option value="600" selected>1x</option>
+                      <option value="300">2x</option>
+                      <option value="100">5x</option>
+                    </select>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Ready Queue -->
-          <div class="panel-card queue-card">
-            <h3 class="queue-title">Ready Queue (FIFO / Prioritized)</h3>
-            <div class="queue-list" id="simReadyQueue">
-              <span class="text-muted">No waiting processes</span>
-            </div>
-          </div>
+            <div class="sim-stage-grid">
+              <!-- Active CPU Cores Stage -->
+              <div class="cpu-stage-panel">
+                <div class="core-stage-header">
+                  <div class="core-header-title-box">
+                    <span class="chip-dot"></span>
+                    <h4 id="simCoresHeaderTitle">CPU EXECUTION CORES</h4>
+                  </div>
+                  <span class="core-mode-tag" id="simCoresModeTag">4 Cores Active</span>
+                </div>
+                <div class="cores-dynamic-grid" id="simCoresContainer">
+                  <div class="card cpu-core-box">
+                    <div class="core-header">
+                      <span class="chip-dot"></span>
+                      <h4>CPU CORE 0 (Active)</h4>
+                    </div>
+                    <div class="core-content" id="cpuCoreDisplay">
+                      <div class="cpu-idle-state">
+                        <div class="cpu-pulse-ring"></div>
+                        <p>CPU Core is Idle</p>
+                        <small>Ready queue is empty or awaiting play trigger</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          <!-- Terminated Tasks -->
-          <div class="panel-card completed-card">
-            <h3 class="queue-title">Terminated Processes</h3>
-            <div class="completed-list" id="simCompletedList">
-              <span class="text-muted">None completed yet</span>
+              <!-- Ready Queue -->
+              <div class="card queue-card">
+                <h4 class="queue-title">Ready Queue (FIFO / Prioritized)</h4>
+                <div class="queue-list" id="simReadyQueue">
+                  <span class="text-muted">No waiting processes</span>
+                </div>
+              </div>
+
+              <!-- Terminated Queue -->
+              <div class="card completed-card">
+                <h4 class="queue-title">Terminated Processes</h4>
+                <div class="completed-list" id="simCompletedList">
+                  <span class="text-muted">None completed yet</span>
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
+
+          <!-- SUB-PANE 3.3: ALGORITHM BENCHMARK COMPARE -->
+          <section id="compareTab" class="tab-pane">
+            <div class="card compare-main-card">
+              <div class="card-header-bar">
+                <div>
+                  <h3 class="card-title">Side-by-Side Algorithm Benchmark</h3>
+                  <p class="card-subtitle">Evaluates FCFS, SJF, Round Robin, Priority, and AI Mode on identical workloads</p>
+                </div>
+                <button id="btnRefreshCompare" class="btn btn-primary btn-sm">🔄 Re-run Benchmark</button>
+              </div>
+
+              <!-- Optimal Recommendation Banner -->
+              <div class="recommendation-banner" id="recommendationBanner" style="display: none;">
+                <div class="trophy-icon">🏆</div>
+                <div>
+                  <h4 id="bestAlgTitle">Optimal Algorithm: AI Mode</h4>
+                  <p id="bestAlgReason">Loading benchmark analysis...</p>
+                </div>
+              </div>
+
+              <div class="table-scroll-wrapper">
+                <table class="comparison-table" id="comparisonTable">
+                  <thead>
+                    <tr>
+                      <th>Algorithm</th>
+                      <th>Avg Waiting Time</th>
+                      <th>Avg Turnaround Time</th>
+                      <th>Avg Response Time</th>
+                      <th>CPU Utilization</th>
+                      <th>Makespan</th>
+                      <th>Execution Sequence</th>
+                    </tr>
+                  </thead>
+                  <tbody id="comparisonTableBody">
+                    <tr><td colspan="7" class="text-center text-muted">Click "Compare All" from the Scheduler to generate benchmarks.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Comparative Bar Chart -->
+              <div class="chart-section" id="comparisonChartSection" style="display: none;">
+                <h4 class="chart-title">Average Waiting Time Comparison (Lower is Better)</h4>
+                <div class="bars-container" id="waitingTimeBars"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SUB-PANE 3.4: EXECUTION HISTORY -->
+          <section id="historyTab" class="tab-pane">
+            <div class="card history-main-card">
+              <div class="card-header-bar">
+                <div>
+                  <h3 class="card-title">Schedule Execution History</h3>
+                  <p class="card-subtitle">Persistent records stored in SQLite database with full metrics</p>
+                </div>
+                <div class="table-actions-group">
+                  <button id="btnRefreshHistory" class="btn btn-secondary btn-sm">🔄 Refresh</button>
+                  <button id="btnClearHistory" class="btn btn-danger btn-sm">🗑️ Clear History</button>
+                </div>
+              </div>
+
+              <div class="table-scroll-wrapper">
+                <table class="history-table" id="historyTable">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Date & Time</th>
+                      <th>Algorithm</th>
+                      <th>Tasks</th>
+                      <th>Avg Waiting</th>
+                      <th>Avg Turnaround</th>
+                      <th>CPU %</th>
+                      <th style="text-align: center;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="historyTableBody">
+                    <tr><td colspan="8" class="text-center text-muted">No history records yet.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
         </div>
-      </section>
 
-      <!-- TAB 4: ALGORITHM COMPARISON -->
-      <section id="compareTab" class="tab-pane">
-        <div class="panel-card">
-          <div class="card-header-row">
-            <div>
-              <h2 class="card-title">Side-by-Side Algorithm Benchmark</h2>
-              <p class="subtitle">Evaluates FCFS, SJF, Round Robin, Priority, and AI Mode on your current tasks</p>
+        <!-- ============================================================ -->
+        <!-- SECTION 4: LIVE SYSTEM (Real Device Telemetry & Sub-Tabs) -->
+        <!-- ============================================================ -->
+        <div id="liveSection" class="section-container" style="display: none;">
+          <!-- Live System Sub-Navigation Bar -->
+          <div class="sub-nav-bar">
+            <div class="sub-nav-pills">
+              <button class="sub-nav-pill nav-tab active" data-tab="appsFilesTab" id="subTabAppsFiles">
+                📱 Apps & Files Inspector
+              </button>
+              <button class="sub-nav-pill nav-tab" data-tab="chromeLiveTab" id="subTabChromeLive">
+                🌐 Real-Time Chrome
+              </button>
+              <button class="sub-nav-pill nav-tab" data-tab="systemTab" id="subTabSystem">
+                💻 OS psutil Processes
+              </button>
+              <button class="sub-nav-pill nav-tab" data-tab="candlestickTab" id="subTabCandle">
+                🕯️ Candy Processes
+              </button>
             </div>
-            <button id="btnRefreshCompare" class="btn btn-sm btn-primary">🔄 Re-run Benchmark</button>
           </div>
 
-          <!-- Recommendation Banner -->
-          <div class="recommendation-banner" id="recommendationBanner" style="display: none;">
-            <div class="trophy-icon">🏆</div>
-            <div>
-              <h3 id="bestAlgTitle">Optimal Algorithm: AI Mode</h3>
-              <p id="bestAlgReason">Loading benchmark analysis...</p>
+          <!-- SUB-PANE 4.1: ACTIVE RUNNING APPS & FILES -->
+          <section id="appsFilesTab" class="tab-pane active">
+            <div class="card">
+              <div class="card-header-bar">
+                <div>
+                  <div class="badge-row">
+                    <span class="badge badge-accent" id="appsFilesDeviceBadge">Device Inspector</span>
+                  </div>
+                  <h3 class="card-title">Active Running Applications & Open Files</h3>
+                  <p class="card-subtitle">Real-time inspection of active applications, sandboxes, and workspace files</p>
+                </div>
+                <div class="table-actions-group">
+                  <button id="btnRequestPermissionExplicit" class="btn btn-secondary btn-sm" title="Manage device access permissions">
+                    🛡️ Manage Access
+                  </button>
+                  <button id="btnInspectFolderFiles" class="btn btn-secondary btn-sm" title="Pick a folder or files from your device to inspect">
+                    📂 Pick Folder
+                  </button>
+                  <button id="btnInspectLiveWindow" class="btn btn-secondary btn-sm" title="Share an active application window live">
+                    🖥️ Inspect Window
+                  </button>
+                  <button id="btnRefreshAppsFiles" class="btn btn-secondary btn-sm" title="Re-scan device apps and files">
+                    🔄 Refresh
+                  </button>
+                  <button id="btnImportAppsToScheduler" class="btn btn-primary btn-sm" title="Load selected open apps into CPU scheduler queue">
+                    ⚡ Load into Scheduler
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quick Hardware Telemetry Summary Cards -->
+              <div class="summary-cards-grid" style="margin-bottom: 16px;">
+                <div class="metric-card">
+                  <span class="metric-label">Open Applications</span>
+                  <span class="metric-value text-accent" id="statAppsCount">0</span>
+                  <span class="metric-sub" id="statAppsSub">Active on device</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Active Inspected Files</span>
+                  <span class="metric-value text-primary" id="statFilesCount">0</span>
+                  <span class="metric-sub" id="statFilesSub">Loaded in memory / folder</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Device Physical RAM</span>
+                  <span class="metric-value text-success" id="statAppsRam">...</span>
+                  <span class="metric-sub" id="statAppsRamSub">Total device memory</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Permission Status</span>
+                  <span class="metric-value text-success" id="statPermissionState">Granted</span>
+                  <span class="metric-sub" id="statPermissionSub">Full device inspection</span>
+                </div>
+              </div>
+
+              <!-- Live Window Video Preview Container -->
+              <div id="liveWindowStreamContainer" class="live-window-preview-card" style="display: none; margin-bottom: 16px;">
+                <div class="live-window-header">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="status-dot perm-dot"></span>
+                    <strong>LIVE APPLICATION WINDOW INSPECTION</strong>
+                    <span class="badge" id="liveWindowStreamTitle">Active Window</span>
+                  </div>
+                  <button id="btnCloseWindowStream" class="btn btn-danger btn-sm">Stop Stream</button>
+                </div>
+                <div class="video-preview-wrapper" style="margin-top: 8px; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid var(--border);">
+                  <video id="liveWindowVideo" autoplay playsinline muted style="width: 100%; max-height: 280px; object-fit: contain;"></video>
+                </div>
+              </div>
+
+              <!-- Active Running Apps Table -->
+              <div style="margin-bottom: 24px;">
+                <div class="table-header-filter-row">
+                  <h4 class="sub-table-title">🚀 Active Running Applications & Browser Tabs</h4>
+                  <input type="text" id="searchAppsInput" class="styled-input" placeholder="Filter applications..." style="max-width: 200px;">
+                </div>
+                <div class="table-scroll-wrapper" style="max-height: 260px;">
+                  <table class="chrome-live-table" id="appsLiveTable">
+                    <thead>
+                      <tr>
+                        <th style="width: 6%;"><input type="checkbox" id="selectAllApps" checked></th>
+                        <th style="width: 12%;">PID</th>
+                        <th style="width: 20%;">Category</th>
+                        <th style="width: 36%;">Application Name / Title</th>
+                        <th style="width: 14%;">RAM (MB)</th>
+                        <th style="width: 12%;">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="appsLiveTableBody">
+                      <tr><td colspan="6" class="text-center text-muted" style="padding: 16px;">Loading device applications...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Active Open Files Table -->
+              <div>
+                <div class="table-header-filter-row">
+                  <h4 class="sub-table-title">📂 Open & Active Files on this Device</h4>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="searchFilesInput" class="styled-input" placeholder="Filter files..." style="max-width: 200px;">
+                    <button id="btnPickFolderInline" class="btn btn-secondary btn-sm" title="Inspect any directory">
+                      📁 Pick Folder
+                    </button>
+                  </div>
+                </div>
+                <div class="table-scroll-wrapper" style="max-height: 260px;">
+                  <table class="chrome-live-table" id="filesLiveTable">
+                    <thead>
+                      <tr>
+                        <th style="width: 25%;">File Name</th>
+                        <th style="width: 18%;">Associated App</th>
+                        <th style="width: 33%;">Path / Location</th>
+                        <th style="width: 12%;">File Size</th>
+                        <th style="width: 12%;">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="filesLiveTableBody">
+                      <tr><td colspan="5" class="text-center text-muted" style="padding: 16px;">Loading device files...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
 
-          <!-- Comparison Table -->
-          <div class="table-scroll-wrapper">
-            <table class="comparison-table" id="comparisonTable">
-              <thead>
-                <tr>
-                  <th>Algorithm</th>
-                  <th>Avg Waiting Time</th>
-                  <th>Avg Turnaround Time</th>
-                  <th>Avg Response Time</th>
-                  <th>CPU Utilization</th>
-                  <th>Makespan</th>
-                  <th>Execution Sequence</th>
-                </tr>
-              </thead>
-              <tbody id="comparisonTableBody">
-                <tr><td colspan="7" class="text-center text-muted">Click "Compare All" to generate comparison metrics.</td></tr>
-              </tbody>
-            </table>
-          </div>
+          <!-- SUB-PANE 4.2: REAL-TIME CHROME ARCHITECTURE -->
+          <section id="chromeLiveTab" class="tab-pane">
+            <div class="card">
+              <div class="card-header-bar">
+                <div>
+                  <h3 class="card-title">Real-Time Google Chrome Architecture</h3>
+                  <p class="card-subtitle">Active tabs, renderer sandboxes, GPU acceleration, and background network services</p>
+                </div>
+                <div class="table-actions-group">
+                  <button id="btnFetchChromeProcs" class="btn btn-secondary btn-sm">🔄 Refresh Chrome</button>
+                  <button id="btnImportAllChrome" class="btn btn-primary btn-sm">⚡ Load into Scheduler</button>
+                </div>
+              </div>
 
-          <!-- Comparative Bar Chart -->
-          <div class="chart-section" id="comparisonChartSection" style="display: none;">
-            <h3 class="chart-title">Average Waiting Time Comparison (Lower is Better)</h3>
-            <div class="bars-container" id="waitingTimeBars"></div>
-          </div>
+              <div class="summary-cards-grid" style="margin-bottom: 16px;">
+                <div class="metric-card">
+                  <span class="metric-label">Physical Hardware RAM</span>
+                  <span class="metric-value text-accent" id="chromeTotalRamDetail">...</span>
+                  <span class="metric-sub" id="chromeTotalRamMb">Hardware Memory</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Hardware CPU Cores</span>
+                  <span class="metric-value text-primary" id="chromeRendererCount">...</span>
+                  <span class="metric-sub" id="chromePlatformDetail">Physical Cores</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Browser Heap RAM</span>
+                  <span class="metric-value text-success" id="chromeGpuStatus">...</span>
+                  <span class="metric-sub" id="chromeGpuRam">Real Memory</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Disk Storage Quota</span>
+                  <span class="metric-value text-warning" id="chromePidCount">...</span>
+                  <span class="metric-sub" id="chromeStorageDetail">Browser Cache</span>
+                </div>
+              </div>
+
+              <div class="table-scroll-wrapper" style="max-height: 300px;">
+                <table class="chrome-live-table" id="chromeLiveTable">
+                  <thead>
+                    <tr>
+                      <th style="width: 6%;"><input type="checkbox" id="selectAllChromeProcs" checked></th>
+                      <th style="width: 14%;">PID</th>
+                      <th style="width: 22%;">Process Type</th>
+                      <th style="width: 34%;">Details / Tab Title</th>
+                      <th style="width: 14%;">RAM (MB)</th>
+                      <th style="width: 10%;">CPU %</th>
+                    </tr>
+                  </thead>
+                  <tbody id="chromeLiveTableBody">
+                    <tr><td colspan="6" class="text-center text-muted" style="padding: 16px;">Inspecting live Chrome processes...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- SUB-PANE 4.3: ALL SYSTEM PROCESSES (psutil) -->
+          <section id="systemTab" class="tab-pane">
+            <div class="card">
+              <div class="card-header-bar">
+                <div>
+                  <h3 class="card-title">Live System Processes (Windows OS)</h3>
+                  <p class="card-subtitle">Real processes inspected on your Windows PC via Python psutil</p>
+                </div>
+                <div class="table-actions-group">
+                  <button id="btnFetchSystemProcs" class="btn btn-secondary btn-sm">🔄 Refresh Tasks</button>
+                  <button id="btnImportSelected" class="btn btn-primary btn-sm">📥 Import Selected</button>
+                </div>
+              </div>
+
+              <div class="table-scroll-wrapper" style="max-height: 320px;">
+                <table class="system-procs-table" id="systemProcsTable">
+                  <thead>
+                    <tr>
+                      <th style="width: 8%;"><input type="checkbox" id="selectAllProcs" checked></th>
+                      <th style="width: 15%;">PID</th>
+                      <th style="width: 42%;">Process Name</th>
+                      <th style="width: 15%;">CPU %</th>
+                      <th style="width: 20%;">Memory (MB)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="systemProcsTableBody">
+                    <tr><td colspan="5" class="text-center text-muted">Loading live system processes...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- SUB-PANE 4.4: CANDLESTICK VISUALIZER -->
+          <section id="candlestickTab" class="tab-pane">
+            <div class="card candy-card">
+              <div class="card-header-bar">
+                <div>
+                  <div class="badge-row">
+                    <span class="badge badge-accent">PROCESS WORKLOAD VISUALIZER</span>
+                  </div>
+                  <h3 class="card-title">Live Process Candlestick Visualizer</h3>
+                  <p class="card-subtitle">Fluctuating candlestick bars burning down in real-time as the CPU schedules processes</p>
+                </div>
+                <div class="table-actions-group">
+                  <button id="btnCandlePulse" class="btn btn-secondary btn-sm">⚡ Animate Pulse</button>
+                  <button id="btnSyncCandleChrome" class="btn btn-secondary btn-sm">🔄 Sync Chrome</button>
+                </div>
+              </div>
+
+              <!-- Candlestick Simulation Toolbar -->
+              <div class="candle-sim-toolbar">
+                <div class="candle-sim-status">
+                  <span class="candle-clock-pill">Clock: <strong id="candleClockTime">T = 0s</strong></span>
+                  <span class="candle-exec-pill" id="candleActivePill">CPU Core: Idle</span>
+                </div>
+                <div class="candle-sim-controls">
+                  <button id="btnCandlePlay" class="btn btn-primary btn-sm">▶ Run Live Candles</button>
+                  <button id="btnCandleStep" class="btn btn-secondary btn-sm">⏭ Step</button>
+                  <button id="btnCandleReset" class="btn btn-danger btn-sm">🔄 Reset</button>
+                  <select id="candleSpeedSelect" class="styled-select-mini">
+                    <option value="1000">Slow (1x)</option>
+                    <option value="500" selected>Normal (2x)</option>
+                    <option value="250">Turbo (4x)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Candlestick Visual Stage -->
+              <div class="candlestick-stage-wrapper">
+                <div class="candlestick-stage" id="candlestickStage">
+                  <!-- Dynamically populated candlestick bars -->
+                </div>
+              </div>
+
+              <!-- Candlestick Legend -->
+              <div class="candy-legend-row">
+                <div class="candy-legend-item"><span class="candy-dot green"></span> Bull Candle (Low Load / Healthy Task)</div>
+                <div class="candy-legend-item"><span class="candy-dot red"></span> Bear Candle (Heavy CPU / Memory Burst)</div>
+                <div class="candy-legend-item"><span class="candy-dot pulse"></span> Pulsing Candle (Currently Active on CPU)</div>
+                <div class="candy-legend-item"><span class="candy-dot done"></span> Dim / Finished (Completed Execution)</div>
+              </div>
+            </div>
+          </section>
         </div>
-      </section>
 
-      <!-- TAB 5: LIVE OS PROCESSES (psutil) -->
-      <section id="systemTab" class="tab-pane">
-        <div class="panel-card">
-          <div class="card-header-row">
-            <div>
-              <h2 class="card-title">Live System Processes</h2>
-              <p class="subtitle">Real processes running on your Windows computer via psutil</p>
-            </div>
-            <div class="table-actions">
-              <button id="btnFetchSystemProcs" class="btn btn-sm btn-secondary">🔄 Refresh OS Tasks</button>
-              <button id="btnImportSelected" class="btn btn-sm btn-primary">📥 Import to Scheduler</button>
-            </div>
-          </div>
+      </main>
+    </div>
 
-          <div class="table-scroll-wrapper">
-            <table class="system-procs-table" id="systemProcsTable">
-              <thead>
-                <tr>
-                  <th style="width: 8%;"><input type="checkbox" id="selectAllProcs" checked></th>
-                  <th style="width: 15%;">PID</th>
-                  <th style="width: 42%;">Process Name</th>
-                  <th style="width: 15%;">CPU %</th>
-                  <th style="width: 20%;">Memory (MB)</th>
-                </tr>
-              </thead>
-              <tbody id="systemProcsTableBody">
-                <tr><td colspan="5" class="text-center text-muted">Loading live system processes...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB 6: HISTORY & ANALYTICS -->
-      <section id="historyTab" class="tab-pane">
-        <div class="panel-card">
-          <div class="card-header-row">
-            <div>
-              <h2 class="card-title">Schedule Execution History</h2>
-              <p class="subtitle">Stored in SQLite database with full metrics</p>
-            </div>
-            <div class="table-actions">
-              <button id="btnRefreshHistory" class="btn btn-sm btn-secondary">🔄 Refresh</button>
-              <button id="btnClearHistory" class="btn btn-sm btn-danger">🗑️ Clear History</button>
-            </div>
-          </div>
-
-          <div class="table-scroll-wrapper">
-            <table class="history-table" id="historyTable">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Date & Time</th>
-                  <th>Algorithm</th>
-                  <th>Tasks</th>
-                  <th>Avg Waiting</th>
-                  <th>Avg Turnaround</th>
-                  <th>CPU %</th>
-                  <th style="text-align: center;">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="historyTableBody">
-                <tr><td colspan="8" class="text-center text-muted">No history records yet</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-    </main>
+    <!-- App Global Footer -->
+    <footer class="app-footer">
+      <span>AI Process Scheduler &bull; Final Year OS Project &bull; Built by <strong>Muhammad Asif</strong></span>
+      <span class="version-badge">v1.0 &bull; Cloud Ready</span>
+    </footer>
 
     <!-- Notification Toast -->
     <div id="toast" class="toast">Notification message</div>
@@ -764,12 +947,11 @@
 
   <!-- Floating AI Tutor FAB Button -->
   <button id="btnOpenAiTutor" class="ai-tutor-fab" title="Ask Schedulo AI Tutor">
-    <span class="tutor-pulse"></span>
     <span class="tutor-icon">🤖</span>
     <span class="tutor-label">AI Tutor</span>
   </button>
 
-  <!-- AI Tutor Cyberpunk Chat Drawer / Modal -->
+  <!-- AI Tutor Chat Drawer -->
   <div id="aiTutorDrawer" class="ai-tutor-drawer" style="display: none;">
     <div class="tutor-header">
       <div class="tutor-brand">
@@ -805,7 +987,7 @@
       <div class="tutor-msg bot">
         <div class="msg-bubble">
           👋 <strong>Assalam-o-Alaikum!</strong> Main <strong>Schedulo AI Tutor</strong> hoon.<br>
-          Agar aapko OS scheduling, AI ML model, Candlesticks, ya Multi-Core processing samajh na aaye, toh mujhse yahan pooch sakte hain!
+          Agar aapko OS scheduling algorithms, Machine Learning predictions, Candlesticks, ya Multi-Core processing samajh na aaye, toh mujhse yahan pooch sakte hain!
         </div>
       </div>
     </div>
@@ -879,7 +1061,7 @@
         <button id="btnModalPickFolder" class="btn btn-secondary btn-sm" title="Select a directory to inspect active files">
           📁 Select Folder / Files
         </button>
-        <button id="btnGrantFullAccess" class="btn btn-primary btn-glow">
+        <button id="btnGrantFullAccess" class="btn btn-primary">
           ✅ Grant Access & Inspect Device
         </button>
       </div>

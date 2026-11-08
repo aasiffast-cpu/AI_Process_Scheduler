@@ -14,11 +14,12 @@ function getApiBase() {
     if (!clean.endsWith("/api")) clean += "/api";
     return clean;
   }
-  // When running directly in Mobile Chrome or Web Dashboard
+  // When running directly in Mobile Chrome or Web Dashboard (e.g. http://localhost:5000)
   if (window.location && window.location.origin && window.location.origin.startsWith("http") && !window.location.origin.includes("chrome-extension")) {
     return `${window.location.origin}/api`;
   }
-  return "https://project-63jm6.vercel.app/api";
+  // Default to local Flask backend first (Port 5000)
+  return "http://127.0.0.1:5000/api";
 }
 
 function setApiBase(url) {
@@ -253,6 +254,8 @@ const PRESETS = {
 // INITIALIZATION
 // ==========================================
 function initApp() {
+  setupThemeToggle();
+  setupModeToggle();
   setupNavigation();
   setupEventListeners();
   setupAiTutor();
@@ -266,8 +269,14 @@ function initApp() {
     const ramEl = document.getElementById("liveChromeRam");
     if (ramEl) ramEl.textContent = `${telemetry.device_memory_gb} GB`;
 
+    const dashRam = document.getElementById("dashRamVal");
+    if (dashRam) dashRam.textContent = `${telemetry.device_memory_gb} GB`;
+
     const coresEl = document.getElementById("liveChromeCount");
     if (coresEl) coresEl.textContent = `${telemetry.hardware_concurrency} Cores`;
+
+    const dashCores = document.getElementById("dashCoresVal");
+    if (dashCores) dashCores.textContent = `${telemetry.hardware_concurrency} Cores`;
 
     const heapEl = document.getElementById("liveChromeTabsCount");
     if (heapEl) heapEl.textContent = `${telemetry.used_heap_mb} MB`;
@@ -327,46 +336,167 @@ function showToast(message, type = "info") {
 }
 
 // ==========================================
-// NAVIGATION TABS CONTROLLER
+// THEME & MODE TOGGLE CONTROLLER
+// ==========================================
+function setupThemeToggle() {
+  const btnTheme = document.getElementById("btnThemeToggle");
+  const icon = document.getElementById("themeToggleIcon");
+  
+  const savedTheme = localStorage.getItem("scheduler_theme") || "dark";
+  document.documentElement.setAttribute("data-theme", savedTheme);
+  document.body.setAttribute("data-theme", savedTheme);
+  if (icon) icon.textContent = savedTheme === "light" ? "🌙" : "☀️";
+
+  if (btnTheme) {
+    btnTheme.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme") || "dark";
+      const next = current === "light" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", next);
+      document.body.setAttribute("data-theme", next);
+      localStorage.setItem("scheduler_theme", next);
+      if (icon) icon.textContent = next === "light" ? "🌙" : "☀️";
+      showToast(`Switched to ${next === "light" ? "Light" : "Dark"} theme!`, "info");
+    });
+  }
+}
+
+function setupModeToggle() {
+  const btnSim = document.getElementById("btnModeSim");
+  const btnLive = document.getElementById("btnModeLive");
+  
+  if (btnSim) {
+    btnSim.addEventListener("click", () => {
+      btnSim.classList.add("active");
+      if (btnLive) btnLive.classList.remove("active");
+      switchTab("schedulerTab");
+      showToast("Simulation Mode active: theoretical & configurable workloads.", "info");
+    });
+  }
+
+  if (btnLive) {
+    btnLive.addEventListener("click", () => {
+      btnLive.classList.add("active");
+      if (btnSim) btnSim.classList.remove("active");
+      switchTab("appsFilesTab");
+      showToast("Live System Mode: active hardware telemetry & processes.", "success");
+    });
+  }
+}
+
+// ==========================================
+// NAVIGATION CONTROLLER (4 Logical Sections)
 // ==========================================
 function setupNavigation() {
   const tabs = document.querySelectorAll(".nav-tab");
   tabs.forEach(tab => {
     tab.addEventListener("click", (e) => {
       e.preventDefault();
-      tabs.forEach(t => t.classList.remove("active"));
-      tab.classList.add("active");
-
       const targetId = tab.dataset.tab;
-      document.querySelectorAll(".tab-pane").forEach(pane => {
-        pane.classList.remove("active");
-      });
-      const targetPane = document.getElementById(targetId);
-      if (targetPane) {
-        targetPane.classList.add("active");
-      }
-
-      // Auto-trigger tab actions
-      if (targetId === "appsFilesTab") {
-        fetchDeviceAppsAndFiles();
-      } else if (targetId === "chromeLiveTab") {
-        fetchChromeProcessesDetails();
-      } else if (targetId === "candlestickTab") {
-        renderCandlesticks(state.tasks);
-      } else if (targetId === "historyTab") {
-        fetchHistory();
-      } else if (targetId === "systemTab") {
-        fetchSystemProcesses();
-      } else if (targetId === "simulationTab" && state.currentSchedule) {
-        initSimulation();
-      }
+      if (targetId) switchTab(targetId);
     });
   });
 }
 
 function switchTab(tabId) {
-  const tabBtn = document.querySelector(`.nav-tab[data-tab="${tabId}"]`);
-  if (tabBtn) tabBtn.click();
+  const targetId = tabId || "dashboardTab";
+
+  // Map each tab to its top-level section
+  const sectionMap = {
+    "dashboardTab": "dashboardTab",
+    "schedulerTab": "schedulerTab",
+    "ganttTab": "resultsSection",
+    "simulationTab": "resultsSection",
+    "compareTab": "resultsSection",
+    "historyTab": "resultsSection",
+    "appsFilesTab": "liveSection",
+    "chromeLiveTab": "liveSection",
+    "systemTab": "liveSection",
+    "candlestickTab": "liveSection"
+  };
+
+  const parentSection = sectionMap[targetId] || "schedulerTab";
+
+  // 1. Update Sidebar Active Item
+  document.querySelectorAll(".sidebar-item").forEach(item => {
+    item.classList.remove("active");
+  });
+  if (parentSection === "dashboardTab") {
+    const item = document.getElementById("navItemDashboard");
+    if (item) item.classList.add("active");
+  } else if (parentSection === "schedulerTab") {
+    const item = document.getElementById("navItemScheduler");
+    if (item) item.classList.add("active");
+  } else if (parentSection === "resultsSection") {
+    const item = document.getElementById("navItemResults");
+    if (item) item.classList.add("active");
+  } else if (parentSection === "liveSection") {
+    const item = document.getElementById("navItemLive");
+    if (item) item.classList.add("active");
+  }
+
+  // 2. Hide all top-level sections / panes, show parent
+  const topSections = ["dashboardTab", "schedulerTab", "resultsSection", "liveSection"];
+  topSections.forEach(sId => {
+    const el = document.getElementById(sId);
+    if (!el) return;
+    if (sId === parentSection) {
+      if (el.classList.contains("tab-pane")) {
+        el.classList.add("active");
+        el.style.display = "flex";
+      } else {
+        el.style.display = "flex";
+      }
+    } else {
+      if (el.classList.contains("tab-pane")) {
+        el.classList.remove("active");
+        el.style.display = "none";
+      } else {
+        el.style.display = "none";
+      }
+    }
+  });
+
+  // 3. If within Results or Live System, activate the specific sub-tab and sub-pane
+  if (parentSection === "resultsSection") {
+    document.querySelectorAll("#resultsSection .sub-nav-pill").forEach(pill => {
+      pill.classList.toggle("active", pill.dataset.tab === targetId);
+    });
+    document.querySelectorAll("#resultsSection .tab-pane").forEach(pane => {
+      const isMatch = pane.id === targetId;
+      pane.classList.toggle("active", isMatch);
+      pane.style.display = isMatch ? "flex" : "none";
+    });
+  } else if (parentSection === "liveSection") {
+    document.querySelectorAll("#liveSection .sub-nav-pill").forEach(pill => {
+      pill.classList.toggle("active", pill.dataset.tab === targetId);
+    });
+    document.querySelectorAll("#liveSection .tab-pane").forEach(pane => {
+      const isMatch = pane.id === targetId;
+      pane.classList.toggle("active", isMatch);
+      pane.style.display = isMatch ? "flex" : "none";
+    });
+  }
+
+  // Close mobile sidebar if open
+  const sidebar = document.getElementById("appSidebar");
+  if (sidebar && window.innerWidth <= 680) {
+    sidebar.classList.remove("open");
+  }
+
+  // Auto-trigger tab actions
+  if (targetId === "appsFilesTab") {
+    fetchDeviceAppsAndFiles();
+  } else if (targetId === "chromeLiveTab") {
+    fetchChromeProcessesDetails();
+  } else if (targetId === "candlestickTab") {
+    renderCandlesticks(state.tasks);
+  } else if (targetId === "historyTab") {
+    fetchHistory();
+  } else if (targetId === "systemTab") {
+    fetchSystemProcesses();
+  } else if (targetId === "simulationTab" && state.currentSchedule) {
+    initSimulation();
+  }
 }
 
 // ==========================================
@@ -375,24 +505,39 @@ function switchTab(tabId) {
 async function checkBackendHealth() {
   const statusBadge = document.getElementById("serverStatus");
   const statusText = document.getElementById("serverStatusText");
-  const currentApi = getApiBase();
+  let currentApi = getApiBase();
 
   try {
-    const res = await fetch(`${currentApi}/health`, { method: "GET" });
-    if (res.ok) {
+    let res = null;
+    try {
+      res = await fetch(`${currentApi}/health`, { method: "GET" });
+    } catch (e) {
+      // If localhost failed and no custom URL is explicitly forced, test Vercel fallback
+      if (!localStorage.getItem("ai_scheduler_api_base") && currentApi.includes("127.0.0.1")) {
+        try {
+          const fallbackRes = await fetch("https://project-63jm6.vercel.app/api/health", { method: "GET" });
+          if (fallbackRes.ok) {
+            currentApi = "https://project-63jm6.vercel.app/api";
+            res = fallbackRes;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (res && res.ok) {
       const data = await res.json();
       state.isBackendOnline = true;
       statusBadge.className = "status-badge online";
-      statusText.textContent = currentApi.includes("vercel") ? "Vercel Online" : "Backend Online";
+      statusText.textContent = currentApi.includes("vercel") ? "Cloud Online" : "Online";
       statusBadge.title = `Connected to ${currentApi} (AI Ready: ${data.ai_model_loaded ? 'Yes' : 'No'})`;
     } else {
-      throw new Error(`HTTP ${res.status}`);
+      throw new Error(`HTTP ${res ? res.status : 'ERR_CONNECTION_REFUSED'}`);
     }
   } catch (err) {
     state.isBackendOnline = false;
     statusBadge.className = "status-badge offline";
     statusText.textContent = "Offline (Retry)";
-    statusBadge.title = `Backend not reachable at ${currentApi}. Click settings ⚙️ to configure Vercel URL.`;
+    statusBadge.title = `Backend not reachable at ${currentApi}. Start Python server: python backend/app.py or click ⚙️ to set Vercel URL.`;
   }
 }
 
@@ -490,8 +635,14 @@ async function fetchRealChromeData(autoSchedule = false, overwriteQueue = false)
     const ramEl = document.getElementById("liveChromeRam");
     if (ramEl) ramEl.textContent = `${telemetry.device_memory_gb} GB`;
 
+    const dashRam = document.getElementById("dashRamVal");
+    if (dashRam) dashRam.textContent = `${telemetry.device_memory_gb} GB`;
+
     const coresEl = document.getElementById("liveChromeCount");
     if (coresEl) coresEl.textContent = `${telemetry.hardware_concurrency} Cores`;
+
+    const dashCores = document.getElementById("dashCoresVal");
+    if (dashCores) dashCores.textContent = `${telemetry.hardware_concurrency} Cores`;
 
     const heapEl = document.getElementById("liveChromeTabsCount");
     if (heapEl) heapEl.textContent = `${telemetry.used_heap_mb} MB`;
@@ -1350,7 +1501,7 @@ function triggerCandlePulseWave() {
   const bars = stage.querySelectorAll(".candlestick-body");
   bars.forEach((b, idx) => {
     setTimeout(() => {
-      b.style.filter = "brightness(1.6) drop-shadow(0 0 16px var(--neon-green))";
+      b.style.filter = "brightness(1.2) drop-shadow(0 2px 8px var(--accent))";
       b.style.transform = "scaleY(1.25)";
       setTimeout(() => {
         b.style.filter = "none";
@@ -1810,12 +1961,12 @@ function renderComparisonResults(data) {
   entries.forEach(([algName, stats]) => {
     const isWinner = algName === data.best_algorithm.name;
     const tr = document.createElement("tr");
-    if (isWinner) tr.style.backgroundColor = "rgba(0, 255, 136, 0.12)";
+    if (isWinner) tr.style.backgroundColor = "rgba(16, 185, 129, 0.12)";
 
     tr.innerHTML = `
       <td><strong>${algName} ${isWinner ? '🏆' : ''}</strong></td>
-      <td><span style="color: var(--neon-green); font-weight: 700;">${stats.avg_waiting_time}s</span></td>
-      <td><span style="color: var(--neon-red); font-weight: 700;">${stats.avg_turnaround_time}s</span></td>
+      <td><span style="color: var(--success); font-weight: 700;">${stats.avg_waiting_time}s</span></td>
+      <td><span style="color: var(--primary); font-weight: 700;">${stats.avg_turnaround_time}s</span></td>
       <td>${stats.avg_response_time}s</td>
       <td>${stats.cpu_utilization}%</td>
       <td>${stats.total_time}s</td>
@@ -1827,7 +1978,7 @@ function renderComparisonResults(data) {
     const barRow = document.createElement("div");
     barRow.className = "bar-row";
     const widthPct = Math.max(6, (stats.avg_waiting_time / maxWT) * 100);
-    const color = isWinner ? "#00ff88" : "#ff3366";
+    const color = isWinner ? "var(--success)" : "var(--primary)";
 
     barRow.innerHTML = `
       <div class="bar-label">${algName}</div>
@@ -2484,6 +2635,57 @@ function setupEventListeners() {
   document.getElementById("selectAllProcs").addEventListener("change", (e) => {
     document.querySelectorAll(".proc-checkbox").forEach(cb => cb.checked = e.target.checked);
   });
+
+  // Advanced Options Collapsible Toggle
+  const btnToggleAdv = document.getElementById("btnToggleAdvancedOptions");
+  const advPanel = document.getElementById("advancedOptionsCollapsible");
+  const advArrow = document.getElementById("advancedArrowIcon");
+  if (btnToggleAdv && advPanel) {
+    btnToggleAdv.addEventListener("click", () => {
+      const isHidden = advPanel.style.display === "none";
+      advPanel.style.display = isHidden ? "block" : "none";
+      if (advArrow) advArrow.classList.toggle("rotated", isHidden);
+    });
+  }
+
+  // Close Settings Dropdown Button
+  const btnCloseSettings = document.getElementById("btnCloseSettingsPanel");
+  if (btnCloseSettings && vercelCard) {
+    btnCloseSettings.addEventListener("click", () => {
+      vercelCard.style.display = "none";
+    });
+  }
+
+  // Mobile Sidebar Toggle Button
+  const btnSidebar = document.getElementById("btnSidebarToggle");
+  const sidebar = document.getElementById("appSidebar");
+  if (btnSidebar && sidebar) {
+    btnSidebar.addEventListener("click", () => {
+      sidebar.classList.toggle("open");
+    });
+  }
+
+  // Dashboard Quick Navigation Buttons
+  const btnDashRun = document.getElementById("btnDashboardRunQuick");
+  if (btnDashRun) btnDashRun.addEventListener("click", () => switchTab("schedulerTab"));
+
+  const btnDashAi = document.getElementById("btnDashAiJump");
+  if (btnDashAi) {
+    btnDashAi.addEventListener("click", () => {
+      const alg = document.getElementById("algorithmSelect");
+      if (alg) alg.value = "ai";
+      switchTab("schedulerTab");
+    });
+  }
+
+  const btnDashGantt = document.getElementById("btnDashGanttJump");
+  if (btnDashGantt) btnDashGantt.addEventListener("click", () => switchTab("ganttTab"));
+
+  const btnDashCompare = document.getElementById("btnDashCompareJump");
+  if (btnDashCompare) btnDashCompare.addEventListener("click", () => switchTab("compareTab"));
+
+  const btnDashSim = document.getElementById("btnDashSimJump");
+  if (btnDashSim) btnDashSim.addEventListener("click", () => switchTab("simulationTab"));
 
   // Simulation controls
   document.getElementById("btnSimPlay").addEventListener("click", toggleSimulation);

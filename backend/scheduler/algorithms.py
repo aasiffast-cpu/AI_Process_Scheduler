@@ -12,14 +12,14 @@ from typing import List, Dict, Any, Tuple
 
 
 TASK_COLORS = [
-    "#00ff88",  # Neon Green
-    "#ff3366",  # Neon Red
-    "#10b981",  # Emerald Green
-    "#ef4444",  # Crimson Red
-    "#059669",  # Deep Green
-    "#dc2626",  # Ruby Red
-    "#34d399",  # Light Mint Green
-    "#f43f5e",  # Rose Red
+    "#3B82F6",  # Electric Blue
+    "#8B5CF6",  # Violet Purple
+    "#10B981",  # Emerald Green
+    "#F59E0B",  # Amber Gold
+    "#EC4899",  # Modern Rose Pink
+    "#14B8A6",  # Teal Cyan
+    "#F97316",  # Warm Orange
+    "#6366F1",  # Deep Indigo
 ]
 
 
@@ -28,7 +28,7 @@ def _assign_colors(tasks: List[Dict[str, Any]]) -> Dict[str, str]:
     for idx, t in enumerate(tasks):
         name = t.get("name", f"Task-{idx+1}")
         color_map[name] = TASK_COLORS[idx % len(TASK_COLORS)]
-    color_map["IDLE"] = "#14231b"  # Dark Emerald/Slate for CPU Idle
+    color_map["IDLE"] = "#1E293B"  # Soft Slate for CPU Idle
     return color_map
 
 
@@ -729,7 +729,7 @@ def schedule_multicore(
             "start": round(start_time, 1),
             "end": round(end_time, 1),
             "duration": selected["burst"],
-            "color": color_map.get(selected["name"], "#00ff88"),
+            "color": color_map.get(selected["name"], "#3B82F6"),
             "core": earliest_core["name"]
         })
 
@@ -751,7 +751,7 @@ def schedule_multicore(
             "assigned_core": earliest_core["name"],
             "memory_mb": selected["memory_mb"],
             "cpu_percent": selected["cpu_percent"],
-            "color": color_map.get(selected["name"], "#00ff88")
+            "color": color_map.get(selected["name"], "#3B82F6")
         })
 
     # Calculate Multi-Core Efficiency & Speedup (Amdahl's Law)
