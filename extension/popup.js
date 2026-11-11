@@ -5,18 +5,30 @@
  * Author: Muhammad Asif
  */
 
-// Dynamic API Base URL (Supports Mobile Web, Localhost & Vercel Cloud Deployment!)
+let activeWorkingApi = null;
+
+// Dynamic API Base URL (Supports Mobile Web, Localhost, Any Wi-Fi & Vercel Cloud!)
 function getApiBase() {
+  if (activeWorkingApi) {
+    return activeWorkingApi;
+  }
+  // When running directly in Mobile Chrome or Web Dashboard (e.g. http://192.168.x.x:5000 or http://localhost:5000)
+  if (window.location && window.location.origin && window.location.origin.startsWith("http") && !window.location.origin.includes("chrome-extension")) {
+    const custom = localStorage.getItem("ai_scheduler_api_base");
+    if (custom && custom.trim() && (custom.includes("vercel.app") || custom.startsWith("https://"))) {
+      let clean = custom.trim();
+      if (clean.endsWith("/")) clean = clean.slice(0, -1);
+      if (!clean.endsWith("/api")) clean += "/api";
+      return clean;
+    }
+    return `${window.location.origin}/api`;
+  }
   const custom = localStorage.getItem("ai_scheduler_api_base");
   if (custom && custom.trim()) {
     let clean = custom.trim();
     if (clean.endsWith("/")) clean = clean.slice(0, -1);
     if (!clean.endsWith("/api")) clean += "/api";
     return clean;
-  }
-  // When running directly in Mobile Chrome or Web Dashboard (e.g. http://localhost:5000)
-  if (window.location && window.location.origin && window.location.origin.startsWith("http") && !window.location.origin.includes("chrome-extension")) {
-    return `${window.location.origin}/api`;
   }
   // Default to local Flask backend first (Port 5000)
   return "http://127.0.0.1:5000/api";
@@ -25,11 +37,13 @@ function getApiBase() {
 function setApiBase(url) {
   if (!url || !url.trim()) {
     localStorage.removeItem("ai_scheduler_api_base");
+    activeWorkingApi = null;
   } else {
     let clean = url.trim();
     if (clean.endsWith("/")) clean = clean.slice(0, -1);
     if (!clean.endsWith("/api")) clean += "/api";
     localStorage.setItem("ai_scheduler_api_base", clean);
+    activeWorkingApi = clean;
   }
 }
 
@@ -500,44 +514,74 @@ function switchTab(tabId) {
 }
 
 // ==========================================
-// HEALTH & VERCEL CLOUD CONNECTION
+// HEALTH & DYNAMIC NETWORK CONNECTION (MULTI-WIFI READY)
 // ==========================================
 async function checkBackendHealth() {
   const statusBadge = document.getElementById("serverStatus");
   const statusText = document.getElementById("serverStatusText");
-  let currentApi = getApiBase();
 
-  try {
-    let res = null;
+  // Build candidate endpoints to probe in priority order
+  const probeList = [];
+  const configured = getApiBase();
+  if (configured) probeList.push(configured);
+
+  if (window.location && window.location.origin && window.location.origin.startsWith("http") && !window.location.origin.includes("chrome-extension")) {
+    const originApi = `${window.location.origin}/api`;
+    if (!probeList.includes(originApi)) probeList.push(originApi);
+  }
+  if (!probeList.includes("http://127.0.0.1:5000/api")) probeList.push("http://127.0.0.1:5000/api");
+  if (!probeList.includes("http://localhost:5000/api")) probeList.push("http://localhost:5000/api");
+
+  let healthyData = null;
+  let workingUrl = null;
+
+  for (const candidate of probeList) {
     try {
-      res = await fetch(`${currentApi}/health`, { method: "GET" });
-    } catch (e) {
-      // If localhost failed and no custom URL is explicitly forced, test Vercel fallback
-      if (!localStorage.getItem("ai_scheduler_api_base") && currentApi.includes("127.0.0.1")) {
-        try {
-          const fallbackRes = await fetch("https://project-63jm6.vercel.app/api/health", { method: "GET" });
-          if (fallbackRes.ok) {
-            currentApi = "https://project-63jm6.vercel.app/api";
-            res = fallbackRes;
-          }
-        } catch (_) {}
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const res = await fetch(`${candidate}/health`, { method: "GET", signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        healthyData = await res.json();
+        workingUrl = candidate;
+        break;
       }
+    } catch (_) {
+      // Continue probing other candidate interfaces
     }
+  }
 
-    if (res && res.ok) {
-      const data = await res.json();
-      state.isBackendOnline = true;
-      statusBadge.className = "status-badge online";
-      statusText.textContent = currentApi.includes("vercel") ? "Cloud Online" : "Online";
-      statusBadge.title = `Connected to ${currentApi} (AI Ready: ${data.ai_model_loaded ? 'Yes' : 'No'})`;
-    } else {
-      throw new Error(`HTTP ${res ? res.status : 'ERR_CONNECTION_REFUSED'}`);
+  // Cloud fallback probe
+  if (!workingUrl) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const fallbackRes = await fetch("https://project-63jm6.vercel.app/api/health", { method: "GET", signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (fallbackRes.ok) {
+        workingUrl = "https://project-63jm6.vercel.app/api";
+        healthyData = await fallbackRes.json();
+      }
+    } catch (_) {}
+  }
+
+  if (workingUrl && healthyData) {
+    activeWorkingApi = workingUrl;
+    state.isBackendOnline = true;
+    if (statusBadge) statusBadge.className = "status-badge online";
+    if (statusText) statusText.textContent = workingUrl.includes("vercel") ? "Cloud Online" : "Online";
+    
+    let info = `Connected to ${workingUrl} (AI Ready: ${healthyData.ai_model_loaded ? 'Yes' : 'No'})`;
+    if (healthyData.network_ips && healthyData.network_ips.length > 0) {
+      info += ` | Wi-Fi IPs: ${healthyData.network_ips.join(', ')}`;
     }
-  } catch (err) {
+    if (statusBadge) statusBadge.title = info;
+  } else {
+    activeWorkingApi = null;
     state.isBackendOnline = false;
-    statusBadge.className = "status-badge offline";
-    statusText.textContent = "Offline (Retry)";
-    statusBadge.title = `Backend not reachable at ${currentApi}. Start Python server: python backend/app.py or click ⚙️ to set Vercel URL.`;
+    if (statusBadge) statusBadge.className = "status-badge offline";
+    if (statusText) statusText.textContent = "Offline (Retry)";
+    if (statusBadge) statusBadge.title = `Backend not reachable. Start Python server: python backend/app.py or click ⚙️ to set IP.`;
   }
 }
 
@@ -2440,7 +2484,10 @@ function setupEventListeners() {
       const isVisible = vercelCard.style.display !== "none";
       vercelCard.style.display = isVisible ? "none" : "flex";
       if (!isVisible && customInput) {
-        customInput.value = localStorage.getItem("ai_scheduler_api_base") || "http://127.0.0.1:5000/api";
+        customInput.value = localStorage.getItem("ai_scheduler_api_base") || (activeWorkingApi || "");
+        if (!customInput.value) {
+          customInput.placeholder = "Auto-Detecting Wi-Fi & Localhost...";
+        }
       }
     });
   }
@@ -2458,13 +2505,13 @@ function setupEventListeners() {
     });
   }
 
-  // Reset Localhost API button
+  // Reset Localhost / Auto API button
   const btnResetApi = document.getElementById("btnResetLocalApi");
   if (btnResetApi) {
     btnResetApi.addEventListener("click", () => {
       setApiBase("");
-      if (customInput) customInput.value = "http://127.0.0.1:5000/api";
-      showToast("Reset to Localhost: 127.0.0.1:5000", "info");
+      if (customInput) customInput.value = "";
+      showToast("Reset to Auto-Detect (Adapts to any Wi-Fi & Localhost)", "info");
       checkBackendHealth();
       fetchRealChromeData(false, false);
       if (vercelCard) vercelCard.style.display = "none";

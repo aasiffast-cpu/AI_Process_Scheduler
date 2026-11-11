@@ -98,12 +98,38 @@ def create_app(config_class=Config):
     return app
 
 
+def get_network_ips():
+    """Detects all active IPv4 network addresses (Wi-Fi, LAN, Hotspot) on this machine."""
+    import socket
+    ips = []
+    try:
+        hostname = socket.gethostname()
+        for ip in socket.gethostbyname_ex(hostname)[2]:
+            if not ip.startswith("127.") and ip not in ips:
+                ips.append(ip)
+    except Exception:
+        pass
+    return ips
+
+
 if __name__ == "__main__":
-    print("=" * 60)
-    print("Initializing AI Process Scheduler Backend...")
-    print(f"Author: Muhammad Asif")
-    print(f"Host: {Config.HOST}:{Config.PORT}")
-    print("=" * 60)
+    import socket
+    hostname = socket.gethostname()
+    network_ips = get_network_ips()
+
+    print("=" * 65)
+    print("🚀 AI PROCESS SCHEDULER BACKEND - READY FOR ALL WI-FI NETWORKS")
+    print(f"Author: Muhammad Asif | Version: 1.0.0")
+    print("-" * 65)
+    print(f"💻 Local Machine (This PC):    http://127.0.0.1:{Config.PORT}")
+    print(f"                               http://localhost:{Config.PORT}")
+    if network_ips:
+        for ip in network_ips:
+            print(f"📱 Mobile / Any Wi-Fi Device:  http://{ip}:{Config.PORT}")
+    else:
+        print(f"📱 Mobile / Any Wi-Fi Device:  http://0.0.0.0:{Config.PORT}")
+    print(f"🏷️  Computer Hostname:          http://{hostname.lower()}:{Config.PORT}")
+    print("=" * 65)
 
     # Pre-warm AI predictor
     try:

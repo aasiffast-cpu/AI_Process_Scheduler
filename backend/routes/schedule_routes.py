@@ -37,12 +37,23 @@ def health_check():
     except Exception:
         ai_ready = False
 
+    import socket
+    ips = []
+    hostname = ""
+    try:
+        hostname = socket.gethostname()
+        ips = [ip for ip in socket.gethostbyname_ex(hostname)[2] if not ip.startswith("127.")]
+    except Exception:
+        pass
+
     return jsonify({
         "status": "healthy",
         "service": "AI Process Scheduler Backend",
         "version": "1.0.0",
         "ai_model_loaded": ai_ready,
-        "author": "Muhammad Asif"
+        "author": "Muhammad Asif",
+        "hostname": hostname,
+        "network_ips": ips
     }), 200
 
 

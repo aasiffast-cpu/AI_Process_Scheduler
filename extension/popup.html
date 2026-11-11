@@ -72,13 +72,13 @@
         </div>
 
         <div class="settings-section">
-          <label class="settings-label" for="customApiUrlInput">Backend API Endpoint (Vercel Cloud or Localhost)</label>
+          <label class="settings-label" for="customApiUrlInput">Backend API Endpoint (Auto-Detects Wi-Fi / Localhost / Cloud)</label>
           <div class="settings-input-row">
-            <input type="text" id="customApiUrlInput" class="styled-input flex-1" placeholder="http://127.0.0.1:5000/api or https://your-app.vercel.app/api">
+            <input type="text" id="customApiUrlInput" class="styled-input flex-1" placeholder="Auto-Detect (or enter custom Wi-Fi/Vercel URL)">
             <button id="btnSaveApiUrl" class="btn btn-primary btn-sm">Save</button>
-            <button id="btnResetLocalApi" class="btn btn-secondary btn-sm">Reset</button>
+            <button id="btnResetLocalApi" class="btn btn-secondary btn-sm" title="Reset to dynamic auto-detection">Auto-Detect</button>
           </div>
-          <span class="settings-hint">Connect the interface to your running local Python Flask server or deployed cloud endpoint.</span>
+          <span class="settings-hint">Leave blank for Auto-Detect across any Wi-Fi network, or enter a custom IP / cloud URL.</span>
         </div>
 
         <div class="settings-row-actions">

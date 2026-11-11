@@ -119,12 +119,19 @@ venv\Scripts\activate
 # Install requirements
 pip install -r requirements.txt
 
-# Start the Flask API server
+# Start the Flask API server (Multi-Wi-Fi & LAN Enabled)
 python app.py
 ```
 
-The backend will start at: `http://127.0.0.1:5000`  
-Health check verification: `http://127.0.0.1:5000/api/health`
+Or simply double-click `start_server.bat` in the root folder!
+
+The backend will automatically bind to `0.0.0.0:5000` and detect your current Wi-Fi IP:
+- **Localhost (This PC):** `http://127.0.0.1:5000` or `http://localhost:5000`
+- **Mobile / Any Wi-Fi Device:** `http://<your_wifi_ip>:5000` (e.g. `http://192.168.100.16:5000`)
+- **Health Check:** `http://127.0.0.1:5000/api/health`
+
+> **Note for New Wi-Fi Networks & Mobile Hotspots:**  
+> If connecting from a phone or another laptop on a new Wi-Fi, run `allow_firewall.bat` as Administrator once to ensure Windows Defender Firewall permits incoming connections on port 5000 across Public & Private networks.
 
 ---
 

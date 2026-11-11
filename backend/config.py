@@ -24,6 +24,6 @@ class Config:
     _bundled_dataset = os.path.join(BASE_DIR, "data", "training_data.csv")
     DATASET_PATH = _bundled_dataset if os.path.exists(_bundled_dataset) else os.path.join(DATA_DIR, "training_data.csv")
     
-    HOST = "127.0.0.1"
+    HOST = os.environ.get("HOST", "0.0.0.0")
     PORT = int(os.environ.get("PORT", 5000))
     DEBUG = not IS_VERCEL
