@@ -3,9 +3,12 @@ REST API Routes for AI Process Scheduler
 Handles scheduling, AI prediction, comparison, history, and real system process monitoring.
 """
 
+import io
 import json
+import os
+import zipfile
 import psutil
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file, Response
 
 from scheduler.algorithms import (
     schedule_fcfs,
@@ -1011,5 +1014,198 @@ def assistant_chat():
         "source": "knowledge_engine",
         "response": reply
     }), 200
+
+
+# =====================================================================
+# APP DOWNLOAD & INSTALLATION ROUTES
+# =====================================================================
+
+@schedule_bp.route("/download/info", methods=["GET"])
+def get_download_info():
+    """Returns metadata about available downloadable packages and install methods"""
+    ext_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "extension"))
+    ext_files = []
+    if os.path.exists(ext_dir):
+        for root, _, files in os.walk(ext_dir):
+            for f in files:
+                ext_files.append(os.path.relpath(os.path.join(root, f), ext_dir))
+
+    return jsonify({
+        "status": "success",
+        "app_name": "AI Process Scheduler",
+        "version": "1.0.0",
+        "author": "Muhammad Asif",
+        "packages": {
+            "extension": {
+                "name": "Chrome / Edge Extension Package",
+                "format": "ZIP",
+                "download_url": "/api/download/extension",
+                "files_count": len(ext_files),
+                "install_guide": [
+                    "Download and unzip AI_Process_Scheduler_Extension.zip",
+                    "Open Chrome or Edge and navigate to chrome://extensions (or edge://extensions)",
+                    "Toggle Developer mode to ON in the top right corner",
+                    "Click 'Load unpacked' in the top left and select the unzipped folder"
+                ]
+            },
+            "pwa": {
+                "name": "Progressive Web App (Standalone Desktop App)",
+                "format": "PWA Native Install",
+                "supported_browsers": ["Google Chrome", "Microsoft Edge", "Brave", "Chrome Android"],
+                "features": ["Runs in standalone window", "Taskbar icon", "No address bar", "Fast offline-ready UI"]
+            },
+            "project": {
+                "name": "Complete Project Source Bundle",
+                "format": "ZIP",
+                "download_url": "/api/download/project",
+                "description": "Full Python Flask backend + Scikit-Learn AI model + Extension + start_server.bat launcher"
+            },
+            "launcher": {
+                "name": "Windows Desktop 1-Click Launcher",
+                "format": "BAT",
+                "download_url": "/api/download/launcher",
+                "description": "Lightweight Windows script that launches the scheduler in standalone app window mode"
+            }
+        }
+    }), 200
+
+
+@schedule_bp.route("/download/extension", methods=["GET"])
+def download_extension_zip():
+    """Generates an in-memory ZIP package of the Chrome extension ready to load unpacked"""
+    try:
+        ext_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "extension"))
+        if not os.path.exists(ext_dir):
+            return jsonify({"error": "Extension directory not found"}), 404
+
+        memory_file = io.BytesIO()
+        with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_DEFLATED) as zf:
+            for root, dirs, files in os.walk(ext_dir):
+                for file in files:
+                    # Skip temporary files
+                    if file.startswith(".") or file.endswith(".tmp"):
+                        continue
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, ext_dir)
+                    zf.write(file_path, arcname)
+
+            # Add README_INSTALL.txt instructions inside the ZIP
+            install_guide = (
+                "======================================================================\n"
+                "  AI PROCESS SCHEDULER - BROWSER EXTENSION INSTALLATION GUIDE\n"
+                "  Author: Muhammad Asif\n"
+                "======================================================================\n\n"
+                "Follow these 4 simple steps to install the extension:\n\n"
+                "1. EXTRACT THIS ZIP FILE:\n"
+                "   Extract this entire ZIP archive into a permanent folder on your PC\n"
+                "   (e.g., C:\\Users\\<YourName>\\Documents\\AI_Scheduler_Extension).\n\n"
+                "2. OPEN EXTENSIONS SETTINGS IN YOUR BROWSER:\n"
+                "   - Google Chrome: Open a new tab and go to: chrome://extensions\n"
+                "   - Microsoft Edge: Open a new tab and go to: edge://extensions\n"
+                "   - Brave: Open a new tab and go to: brave://extensions\n\n"
+                "3. ENABLE DEVELOPER MODE:\n"
+                "   Look at the top-right corner of the Extensions page and toggle\n"
+                "   'Developer mode' switch to ON.\n\n"
+                "4. LOAD UNPACKED EXTENSION:\n"
+                "   In the top-left corner, click the 'Load unpacked' button.\n"
+                "   Select the unzipped folder containing 'manifest.json'.\n\n"
+                "DONE! The 'AI Process Scheduler' icon will now appear in your browser's\n"
+                "extensions toolbar. Click the puzzle icon to pin it for quick 1-click access!\n\n"
+                "Backend Connectivity:\n"
+                "Make sure your Python Flask backend is running on http://127.0.0.1:5000\n"
+                "(Run 'start_server.bat' from the project root).\n"
+            )
+            zf.writestr("README_INSTALL.txt", install_guide)
+
+        memory_file.seek(0)
+        return send_file(
+            memory_file,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name="AI_Process_Scheduler_Extension.zip"
+        )
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate extension zip: {str(e)}"}), 500
+
+
+@schedule_bp.route("/download/project", methods=["GET"])
+def download_project_zip():
+    """Generates an in-memory ZIP package of the full project (excluding venv, cache, git)"""
+    try:
+        project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        memory_file = io.BytesIO()
+
+        exclude_dirs = {
+            ".git", ".pytest_cache", "__pycache__", "venv", ".venv",
+            "env", "build", "dist", ".idea", ".vscode"
+        }
+        exclude_exts = {".pyc", ".pyo", ".pyd", ".db-journal"}
+
+        with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_DEFLATED) as zf:
+            for root, dirs, files in os.walk(project_dir):
+                dirs[:] = [d for d in dirs if d not in exclude_dirs and not d.startswith(".")]
+
+                for file in files:
+                    ext = os.path.splitext(file)[1].lower()
+                    if ext in exclude_exts or file.startswith("."):
+                        continue
+                    if file == "scheduler.db":
+                        continue  # Do not include local user database
+
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.join("AI_Process_Scheduler", os.path.relpath(file_path, project_dir))
+                    zf.write(file_path, arcname)
+
+        memory_file.seek(0)
+        return send_file(
+            memory_file,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name="AI_Process_Scheduler_Full_Package.zip"
+        )
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate project zip: {str(e)}"}), 500
+
+
+@schedule_bp.route("/download/launcher", methods=["GET"])
+def download_launcher_bat():
+    """Generates a desktop shortcut batch file to launch the scheduler with 1 click"""
+    host = request.host or "127.0.0.1:5000"
+    scheme = "https" if request.is_secure else "http"
+    target_url = f"{scheme}://{host}"
+
+    bat_content = f"""@echo off
+title AI Process Scheduler - Desktop Launcher
+cls
+echo ======================================================================
+echo   Launching AI Process Scheduler Dashboard...
+echo   URL: {target_url}
+echo ======================================================================
+echo.
+
+:: Try opening in Chrome App Mode (standalone clean window without browser UI)
+start "" chrome.exe --app="{target_url}" 2>nul
+if %ERRORLEVEL% EQU 0 goto done
+
+:: Try opening in Microsoft Edge App Mode
+start "" msedge.exe --app="{target_url}" 2>nul
+if %ERRORLEVEL% EQU 0 goto done
+
+:: Try opening in Brave Browser App Mode
+start "" brave.exe --app="{target_url}" 2>nul
+if %ERRORLEVEL% EQU 0 goto done
+
+:: Fallback to system default web browser
+start "" "{target_url}"
+
+:done
+exit
+"""
+    return Response(
+        bat_content,
+        mimetype="application/x-bat",
+        headers={"Content-Disposition": "attachment; filename=Launch_AI_Scheduler.bat"}
+    )
+
 
 

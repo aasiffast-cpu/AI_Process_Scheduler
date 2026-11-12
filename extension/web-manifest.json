@@ -1,0 +1,30 @@
+{
+  "name": "AI Process Scheduler",
+  "short_name": "AI Scheduler",
+  "description": "Smart AI-driven OS Process & Task Scheduler with Gantt charts, live CPU simulation, and system telemetry.",
+  "start_url": "./popup.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0B1220",
+  "theme_color": "#0B1220",
+  "categories": ["utilities", "productivity", "education"],
+  "icons": [
+    {
+      "src": "icons/icon16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

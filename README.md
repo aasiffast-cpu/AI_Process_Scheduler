@@ -205,6 +205,18 @@ Retrieves live Windows OS processes using `psutil`.
 ### 5. `GET /api/history`
 Retrieves past scheduling history stored in SQLite.
 
+### 6. `GET /api/download/extension` (or `/download/extension`)
+Generates an in-memory ZIP package (`AI_Process_Scheduler_Extension.zip`) containing the Chrome extension Manifest V3 files and installation guide ready to load unpacked in Chrome/Edge/Brave.
+
+### 7. `GET /api/download/project` (or `/download/project`)
+Packages the full project into `AI_Process_Scheduler_Full_Package.zip` (excluding git, venv, and caches) for offline local deployment.
+
+### 8. `GET /api/download/launcher` (or `/download/launcher`)
+Generates a 1-click Windows desktop batch launcher script (`Launch_AI_Scheduler.bat`) that runs the dashboard in standalone application window mode.
+
+### 9. `GET /api/download/info`
+Returns JSON metadata regarding available download packages, file counts, and installation steps.
+
 ---
 
 ## 🧪 Running Unit & Integration Tests
@@ -242,6 +254,7 @@ backend/tests/test_api.py::test_history_endpoints PASSED
 2. **Precision Gantt Chart**: Handles non-zero arrival times and renders CPU **IDLE** gaps clearly with striped indicator bars.
 3. **Live Interactive CPU Player**: Step forward or play the clock to visualize the Ready Queue, executing CPU slice, and Terminated tasks list.
 4. **Real OS Process Scheduling**: Import real running applications (Chrome, Python, VS Code, Discord, etc.) directly from Windows task manager to see how your OS schedules them!
+5. **Multi-Platform App Download & PWA Desktop Support**: One-click download of the complete Chrome extension (.ZIP), standalone PWA desktop app installation, full offline project archive (.ZIP), and Windows 1-click desktop batch launcher.
 
 ---
 

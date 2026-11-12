@@ -59,6 +59,7 @@ def create_app(config_class=Config):
     @app.route("/")
     @app.route("/dashboard")
     @app.route("/gui")
+    @app.route("/download")
     def serve_dashboard():
         accept = request.headers.get("Accept", "")
         # If explicitly asking for JSON and not HTML (e.g. automated test/curl)
@@ -74,10 +75,29 @@ def create_app(config_class=Config):
                     "predict": "/api/predict (POST)",
                     "compare": "/api/compare (POST)",
                     "history": "/api/history (GET, DELETE)",
-                    "system_processes": "/api/system-processes (GET)"
+                    "system_processes": "/api/system-processes (GET)",
+                    "download_extension": "/api/download/extension (GET)",
+                    "download_project": "/api/download/project (GET)",
+                    "download_launcher": "/api/download/launcher (GET)"
                 }
             })
         return send_from_directory(EXTENSION_DIR, "popup.html")
+
+    # Direct convenient download URL aliases
+    @app.route("/download/extension")
+    def download_ext_alias():
+        from routes.schedule_routes import download_extension_zip
+        return download_extension_zip()
+
+    @app.route("/download/project")
+    def download_proj_alias():
+        from routes.schedule_routes import download_project_zip
+        return download_project_zip()
+
+    @app.route("/download/launcher")
+    def download_launch_alias():
+        from routes.schedule_routes import download_launcher_bat
+        return download_launcher_bat()
 
     # Serve static assets (popup.css, popup.js, icons, etc.)
     @app.route("/<path:filename>")

@@ -2447,6 +2447,155 @@ function escapeHtml(str) {
 }
 
 // ==========================================
+// APP DOWNLOAD & PWA INSTALL CONTROLLER
+// ==========================================
+let deferredPwaPrompt = null;
+
+// Listen for PWA installation prompt
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPwaPrompt = e;
+  const pwaBtnText = document.getElementById("btnInstallPwaText");
+  if (pwaBtnText) pwaBtnText.textContent = "⚡ Install Desktop App (Ready!)";
+  const hint = document.getElementById("pwaHelpHint");
+  if (hint) hint.textContent = "✅ PWA installer is ready! Click the button above to install directly onto your device.";
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredPwaPrompt = null;
+  const pwaBtnText = document.getElementById("btnInstallPwaText");
+  if (pwaBtnText) pwaBtnText.textContent = "✅ Desktop App Installed";
+  showToast("🎉 AI Process Scheduler successfully installed as a Desktop App!", "success");
+});
+
+// Register PWA service worker if running in regular web browser mode
+if ("serviceWorker" in navigator && (!window.chrome || !chrome.runtime || !chrome.runtime.id)) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch((err) => {
+      console.warn("PWA Service Worker registration notice:", err);
+    });
+  });
+}
+
+function openDownloadModal() {
+  audio.playClick();
+  const modal = document.getElementById("downloadAppModal");
+  if (modal) {
+    modal.style.display = "flex";
+  }
+}
+
+function closeDownloadModal() {
+  audio.playClick();
+  const modal = document.getElementById("downloadAppModal");
+  if (modal) {
+    modal.style.display = "none";
+  }
+}
+
+async function handleDownloadExtensionZip() {
+  audio.playSuccess();
+  showToast("📥 Preparing AI_Process_Scheduler_Extension.zip...", "info");
+  const downloadUrl = `${getApiBase()}/download/extension`;
+
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.download = "AI_Process_Scheduler_Extension.zip";
+  link.target = "_blank";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => {
+    showToast("✅ Download started! Extract the ZIP and load unpacked in chrome://extensions", "success");
+  }, 1200);
+}
+
+async function handleDownloadProjectZip() {
+  audio.playSuccess();
+  showToast("📦 Packaging full project with Python backend & AI models...", "info");
+  const downloadUrl = `${getApiBase()}/download/project`;
+
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.download = "AI_Process_Scheduler_Full_Package.zip";
+  link.target = "_blank";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => {
+    showToast("✅ Full package download started!", "success");
+  }, 1200);
+}
+
+function handleDownloadLauncherBat() {
+  audio.playSuccess();
+  const currentHost = window.location.origin && window.location.origin.startsWith("http") && !window.location.origin.includes("chrome-extension")
+    ? window.location.origin
+    : "http://localhost:5000";
+
+  const batContent = `@echo off\r\ntitle AI Process Scheduler - Desktop Launcher\r\ncls\r\necho ======================================================================\r\necho   Launching AI Process Scheduler Dashboard...\r\necho   URL: ${currentHost}\r\necho ======================================================================\r\necho.\r\n\r\n:: Try Chrome App Mode (standalone clean window without browser address bar)\r\nstart "" chrome.exe --app="${currentHost}" 2>nul\r\nif %ERRORLEVEL% EQU 0 goto done\r\n\r\n:: Try Edge App Mode\r\nstart "" msedge.exe --app="${currentHost}" 2>nul\r\nif %ERRORLEVEL% EQU 0 goto done\r\n\r\n:: Fallback to default browser\r\nstart "" "${currentHost}"\r\n\r\n:done\r\nexit\r\n`;
+
+  const blob = new Blob([batContent], { type: "application/x-bat" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "Launch_AI_Scheduler.bat";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+
+  showToast("⚡ Downloaded Launch_AI_Scheduler.bat! Place it on your Desktop for 1-click launch.", "success");
+}
+
+async function handleCopyExtUrl() {
+  audio.playClick();
+  const extUrl = "chrome://extensions";
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(extUrl);
+    } else {
+      const input = document.createElement("input");
+      input.value = extUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+    }
+    showToast("📋 Copied 'chrome://extensions' to clipboard! Paste into browser address bar.", "success");
+  } catch (err) {
+    showToast("chrome://extensions (Paste into browser address bar)", "info");
+  }
+}
+
+async function handleInstallPwa() {
+  audio.playClick();
+  if (deferredPwaPrompt) {
+    try {
+      deferredPwaPrompt.prompt();
+      const choice = await deferredPwaPrompt.userChoice;
+      if (choice && choice.outcome === "accepted") {
+        showToast("🚀 Installing AI Process Scheduler on your PC...", "success");
+      } else {
+        showToast("PWA install prompt dismissed", "info");
+      }
+      deferredPwaPrompt = null;
+    } catch (err) {
+      console.warn("PWA install error:", err);
+    }
+  } else {
+    // If running inside the Chrome Extension itself
+    if (window.chrome && chrome.runtime && chrome.runtime.id) {
+      showToast("💡 You are already using the Chrome Extension! Click Full Tab (↗) for full screen.", "info");
+    } else {
+      // Running in browser, prompt user on how to install
+      showToast("💡 Click the (⊕) Install icon in your browser address bar (or Menu ➔ 'Install AI Process Scheduler')", "info");
+    }
+  }
+}
+
+// ==========================================
 // ALL UI EVENT LISTENERS
 // ==========================================
 function setupEventListeners() {
@@ -2743,6 +2892,65 @@ function setupEventListeners() {
     if (state.simulation.isPlaying) {
       clearInterval(state.simulation.timer);
       state.simulation.timer = setInterval(tickSimulation, state.simulation.speedMs);
+    }
+  });
+
+  // ==========================================
+  // Download & Install App Event Listeners
+  // ==========================================
+  const btnDownloadHeader = document.getElementById("btnDownloadAppHeader");
+  if (btnDownloadHeader) btnDownloadHeader.addEventListener("click", openDownloadModal);
+
+  const btnHeroDownload = document.getElementById("btnHeroDownloadApp");
+  if (btnHeroDownload) btnHeroDownload.addEventListener("click", openDownloadModal);
+
+  const navDownload = document.getElementById("navItemDownloadApp");
+  if (navDownload) navDownload.addEventListener("click", openDownloadModal);
+
+  const btnSettingsDownload = document.getElementById("btnSettingsDownloadApp");
+  if (btnSettingsDownload) btnSettingsDownload.addEventListener("click", () => {
+    const vercelCard = document.getElementById("vercelConfigCard");
+    if (vercelCard) vercelCard.style.display = "none";
+    openDownloadModal();
+  });
+
+  const btnCloseDlModal = document.getElementById("btnCloseDownloadModal");
+  if (btnCloseDlModal) btnCloseDlModal.addEventListener("click", closeDownloadModal);
+
+  const btnModalCloseDl = document.getElementById("btnModalCloseDownload");
+  if (btnModalCloseDl) btnModalCloseDl.addEventListener("click", closeDownloadModal);
+
+  // Close download modal if user clicks on the dark backdrop
+  const downloadModal = document.getElementById("downloadAppModal");
+  if (downloadModal) {
+    downloadModal.addEventListener("click", (e) => {
+      if (e.target === downloadModal) closeDownloadModal();
+    });
+  }
+
+  // Modal Actions
+  const btnDlExtZip = document.getElementById("btnDlExtensionZip");
+  if (btnDlExtZip) btnDlExtZip.addEventListener("click", handleDownloadExtensionZip);
+
+  const btnCopyExt = document.getElementById("btnCopyExtUrl");
+  if (btnCopyExt) btnCopyExt.addEventListener("click", handleCopyExtUrl);
+
+  const btnInstPwa = document.getElementById("btnInstallPwa");
+  if (btnInstPwa) btnInstPwa.addEventListener("click", handleInstallPwa);
+
+  const btnDlProjZip = document.getElementById("btnDlProjectZip");
+  if (btnDlProjZip) btnDlProjZip.addEventListener("click", handleDownloadProjectZip);
+
+  const btnDlLaunchBat = document.getElementById("btnDlLauncherBat");
+  if (btnDlLaunchBat) btnDlLaunchBat.addEventListener("click", handleDownloadLauncherBat);
+
+  // Global ESC key to close modal
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const modal = document.getElementById("downloadAppModal");
+      if (modal && modal.style.display !== "none") {
+        closeDownloadModal();
+      }
     }
   });
 }
